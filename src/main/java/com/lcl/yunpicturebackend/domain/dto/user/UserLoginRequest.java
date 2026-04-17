@@ -1,4 +1,4 @@
-package com.lcl.yunpicturebackend.domain.dto;
+package com.lcl.yunpicturebackend.domain.dto.user;
 
 import lombok.Data;
 

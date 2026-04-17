@@ -1,5 +1,6 @@
 package com.lcl.yunpicturebackend.domain.po;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -29,7 +30,7 @@ public class User implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(value = "id")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     @ApiModelProperty(value = "账号")
@@ -60,6 +61,7 @@ public class User implements Serializable {
     private LocalDateTime updateTime;
 
     @ApiModelProperty(value = "是否删除")
+    @TableLogic
     private Integer isDelete;
 
 

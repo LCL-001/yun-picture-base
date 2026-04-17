@@ -1,4 +1,4 @@
-package com.lcl.yunpicturebase;
+package com.lcl.yunpicturebackend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

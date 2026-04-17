@@ -1,10 +1,34 @@
 package com.lcl.yunpicturebackend.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.lcl.yunpicturebackend.common.BaseResponse;
+import com.lcl.yunpicturebackend.common.ResultUtils;
+import com.lcl.yunpicturebackend.constant.UserConstant;
+import com.lcl.yunpicturebackend.domain.dto.user.UserLoginRequest;
+import com.lcl.yunpicturebackend.domain.dto.user.UserQueryRequest;
+import com.lcl.yunpicturebackend.domain.dto.user.UserRegisterRequest;
 import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yunpicturebackend.domain.vo.LoginUserVO;
+import com.lcl.yunpicturebackend.domain.vo.UserVO;
+import com.lcl.yunpicturebackend.enums.UserRoleEnum;
+import com.lcl.yunpicturebackend.exception.BusinessException;
+import com.lcl.yunpicturebackend.exception.ErrorCode;
+import com.lcl.yunpicturebackend.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.mapper.UserMapper;
 import com.lcl.yunpicturebackend.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -16,5 +40,129 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+
+
+    @Override
+    public BaseResponse<Long> register(UserRegisterRequest userRegisterRequest) {
+        // 1. 校验
+        ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(userRegisterRequest.getUserAccount() == null || userRegisterRequest.getUserPassword() == null || userRegisterRequest.getCheckPassword() == null, ErrorCode.PARAMS_ERROR,
+                "参数为空");
+        ThrowUtils.throwIf(userRegisterRequest.getUserAccount().length() < 4, ErrorCode.PARAMS_ERROR,
+                "用户账号过短");
+        ThrowUtils.throwIf(userRegisterRequest.getUserPassword().length() < 8, ErrorCode.PARAMS_ERROR,
+                "用户密码过短");
+        ThrowUtils.throwIf(!userRegisterRequest.getUserPassword().equals(userRegisterRequest.getCheckPassword()), ErrorCode.PARAMS_ERROR,
+                "两次输入的密码不一致");
+        // 2. 校验用户是否重复
+        User user = lambdaQuery().eq(User::getUserAccount, userRegisterRequest.getUserAccount()).one();
+        ThrowUtils.throwIf(user != null, ErrorCode.PARAMS_ERROR, "账号重复，用户已存在");
+        // 3. 密码加密
+        String encryptPassword = getEncryptPassword(userRegisterRequest.getUserPassword());
+        // 4. 插入数据
+        User u = new User();
+        u.setUserAccount(userRegisterRequest.getUserAccount());
+        u.setUserPassword(encryptPassword);
+        u.setUserName("默认用户名");
+        u.setUserRole(UserRoleEnum.USER.getValue());
+        boolean success = save(u);
+        // 5. 返回结果
+        ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "注册失败");
+        return ResultUtils.success(u.getId());
+    }
+
+    @Override
+    public BaseResponse<LoginUserVO> login(UserLoginRequest userLoginRequest, HttpServletRequest request) {
+        // 1. 校验
+        ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(userLoginRequest.getUserAccount() == null || userLoginRequest.getUserPassword() == null, ErrorCode.PARAMS_ERROR,
+                "参数为空");
+        ThrowUtils.throwIf(userLoginRequest.getUserAccount().length() < 4, ErrorCode.PARAMS_ERROR,
+                "用户账号错误");
+                ThrowUtils.throwIf(userLoginRequest.getUserPassword().length() < 8, ErrorCode.PARAMS_ERROR,
+                "用户密码错误");
+        // 2. 校验用户是否存在
+        // 2.1. 密码加密
+        String encryptPassword = getEncryptPassword(userLoginRequest.getUserPassword());
+        // 2.2. 查询用户是否存在
+        User user = lambdaQuery()
+                .eq(User::getUserAccount, userLoginRequest.getUserAccount())
+                .eq(User::getUserPassword, encryptPassword)
+                .one();
+        ThrowUtils.throwIf(user == null, ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
+        // 3. 记录用户的登录态
+        request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        return ResultUtils.success(BeanUtil.copyProperties(user, LoginUserVO.class));
+    }
+
+    @Override
+    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
+        // 1. 判断是否已登录
+        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        ThrowUtils.throwIf(currentUser == null || currentUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR);
+        // 2. 获取当前登录的用户信息
+        currentUser = getById(currentUser.getId());
+        ThrowUtils.throwIf(currentUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        // 3. 返回
+        return ResultUtils.success(BeanUtil.copyProperties(currentUser, LoginUserVO.class));
+    }
+
+    @Override
+    public BaseResponse<Boolean> logout(HttpServletRequest request) {
+        // 1. 判断是否已登录
+        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        ThrowUtils.throwIf(currentUser == null || currentUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR);
+        // 2. 移除登录态
+        request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
+        // 3. 返回
+        return ResultUtils.success(true);
+    }
+
+    public String getEncryptPassword(String userPassword) {
+        final String salt = "asdewqzzxcc";
+        return DigestUtils.md5DigestAsHex((salt + userPassword).getBytes());
+    }
+
+    @Override
+    public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        Long id = userQueryRequest.getId();
+        String userAccount = userQueryRequest.getUserAccount();
+        String userName = userQueryRequest.getUserName();
+        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
+        queryWrapper.eq(StrUtil.isNotBlank(userRole), "userRole", userRole);
+        queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
+        queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
+        queryWrapper.like(StrUtil.isNotBlank(userProfile), "userProfile", userProfile);
+        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        return queryWrapper;
+    }
+
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if (CollUtil.isEmpty(userList)) {
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
 
 }
