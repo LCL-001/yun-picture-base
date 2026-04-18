@@ -96,7 +96,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
-    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
+    public User getLoginUser(HttpServletRequest request) {
         // 1. 判断是否已登录
         Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         User currentUser = (User) userObj;
@@ -105,7 +105,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         currentUser = getById(currentUser.getId());
         ThrowUtils.throwIf(currentUser == null, ErrorCode.NOT_LOGIN_ERROR);
         // 3. 返回
-        return ResultUtils.success(BeanUtil.copyProperties(currentUser, LoginUserVO.class));
+        return currentUser;
     }
 
     @Override
@@ -164,5 +164,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         return userList.stream().map(this::getUserVO).collect(Collectors.toList());
     }
+
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
+
 
 }

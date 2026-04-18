@@ -1,9 +1,7 @@
 package com.lcl.yunpicturebackend.domain.po;
 
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.time.LocalDateTime;
 import java.io.Serializable;
 import io.swagger.annotations.ApiModel;
@@ -27,6 +25,7 @@ import lombok.experimental.Accessors;
 @ApiModel(value="User对象", description="用户")
 public class User implements Serializable {
 
+    @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(value = "id")

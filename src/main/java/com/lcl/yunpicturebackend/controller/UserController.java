@@ -1,6 +1,7 @@
 package com.lcl.yunpicturebackend.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lcl.yunpicturebackend.annotation.AuthCheck;
 import com.lcl.yunpicturebackend.common.BaseResponse;
@@ -55,7 +56,8 @@ public class UserController {
     @ApiOperation("获取当前登录用户")
     @GetMapping("/get/login")
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
-        return userService.getLoginUser(request);
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(BeanUtil.copyProperties(loginUser, LoginUserVO.class));
     }
 
     @ApiOperation("用户注销")

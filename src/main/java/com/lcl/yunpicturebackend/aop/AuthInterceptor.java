@@ -1,9 +1,11 @@
 package com.lcl.yunpicturebackend.aop;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.lcl.yunpicturebackend.annotation.AuthCheck;
 import com.lcl.yunpicturebackend.common.BaseResponse;
 import com.lcl.yunpicturebackend.common.ResultUtils;
 import com.lcl.yunpicturebackend.constant.UserConstant;
+import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.domain.vo.LoginUserVO;
 import com.lcl.yunpicturebackend.enums.UserRoleEnum;
 import com.lcl.yunpicturebackend.exception.BusinessException;
@@ -46,8 +48,8 @@ public class AuthInterceptor {
         // 2. 获取当前登录用户
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(requestAttributes)).getRequest();
-        BaseResponse<LoginUserVO> loginUser = userService.getLoginUser(request);
-        LoginUserVO userVO = loginUser.getData();
+        User loginUser = userService.getLoginUser(request);
+        LoginUserVO userVO = BeanUtil.copyProperties(loginUser, LoginUserVO.class);
         // 3. 获取当前用户角色
         String userRole = userVO.getUserRole();
         UserRoleEnum userRoleEnum = UserRoleEnum.getEnumByValue(userRole);
