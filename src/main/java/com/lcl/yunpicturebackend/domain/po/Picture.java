@@ -65,6 +65,18 @@ public class Picture implements Serializable {
     @ApiModelProperty(value = "创建用户 id")
     private Long userId;
 
+    @ApiModelProperty(value = "状态：0-待审核; 1-通过; 2-拒绝")
+    private Integer reviewStatus;
+
+    @ApiModelProperty(value = "审核信息")
+    private String reviewMessage;
+
+    @ApiModelProperty(value = "审核人 id")
+    private Long reviewerId;
+
+    @ApiModelProperty(value = "审核时间")
+    private Date reviewTime;
+
     @ApiModelProperty(value = "创建时间")
     private Date createTime;
 
