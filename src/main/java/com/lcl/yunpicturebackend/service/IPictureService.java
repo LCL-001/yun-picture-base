@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lcl.yunpicturebackend.domain.dto.picture.PictureQueryRequest;
 import com.lcl.yunpicturebackend.domain.dto.picture.PictureReviewRequest;
+import com.lcl.yunpicturebackend.domain.dto.picture.PictureUploadByBatchRequest;
 import com.lcl.yunpicturebackend.domain.dto.picture.PictureUploadRequest;
 import com.lcl.yunpicturebackend.domain.po.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.domain.vo.PictureVO;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -34,6 +34,15 @@ public interface IPictureService extends IService<Picture> {
     PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser);
 
     /**
+     * 批量上传图片
+     *
+     * @param pictureUploadByBatchRequest 批量上传图片请求
+     * @param loginUser                   登录用户
+     * @return 批量上传图片结果
+     */
+    int uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
+
+    /**
      * 获取查询条件
      *
      * @param pictureQueryRequest 查询条件
@@ -41,10 +50,29 @@ public interface IPictureService extends IService<Picture> {
      */
     QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
 
+    /**
+     * 获取图片封装类
+     *
+     * @param picture 图片
+     * @param request 请求
+     * @return 图片封装类
+     */
     PictureVO getPictureVO(Picture picture, HttpServletRequest request);
 
+    /**
+     * 获取图片分页封装类
+     *
+     * @param picturePage 图片分页
+     * @param request 请求
+     * @return 图片分页封装类
+     */
     Page<PictureVO> getPictureVOPage(Page<Picture> picturePage, HttpServletRequest request);
 
+    /**
+     * 验证图片
+     *
+     * @param picture 图片
+     */
     void validPicture(Picture picture);
 
     /**
