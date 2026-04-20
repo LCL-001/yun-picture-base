@@ -1,6 +1,7 @@
 package com.lcl.yunpicturebackend.manager.upload;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpStatus;
 import cn.hutool.http.HttpUtil;
@@ -28,11 +29,32 @@ public class URLFilePictureUpload extends PictureUploadTemplate {
         HttpUtil.downloadFile(fileURL, file);
     }
 
+    //    @Override
+//    protected String getOriginalFilename(Object inputSource) {
+//        String fileURL = (String) inputSource;
+//        return FileUtil.mainName(fileURL);
+//    }
+// ... existing code ...
     @Override
     protected String getOriginalFilename(Object inputSource) {
         String fileURL = (String) inputSource;
-        return FileUtil.mainName(fileURL);
+        // 从 URL 中提取完整的文件名（包含所有后缀）
+        try {
+            URL url = new URL(fileURL);
+            String path = url.getPath();
+            String fileName = FileUtil.getName(path);
+            // 如果文件名包含查询参数，去掉查询参数
+            if (fileName != null && fileName.contains("?")) {
+                fileName = fileName.substring(0, fileName.indexOf("?"));
+            }
+            return StrUtil.isNotBlank(fileName) ? fileName : "image.jpg";
+        } catch (MalformedURLException e) {
+            // 如果 URL 格式异常，使用原有逻辑
+            return StrUtil.isNotBlank(fileURL) ? fileURL : "image.jpg";
+        }
     }
+// ... existing code ...
+
 
     @Override
     protected void validPicture(Object inputSource) {
