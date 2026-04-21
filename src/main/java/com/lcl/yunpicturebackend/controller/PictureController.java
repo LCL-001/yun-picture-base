@@ -1,7 +1,9 @@
 package com.lcl.yunpicturebackend.controller;
 
 
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lcl.yunpicturebackend.annotation.AuthCheck;
 import com.lcl.yunpicturebackend.common.BaseResponse;
@@ -23,6 +25,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -48,6 +53,7 @@ public class PictureController {
 
     private final IPictureService pictureService;
     private final IUserService userService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @ApiOperation("审核图片")
     @PostMapping("/review")
@@ -228,6 +234,43 @@ public class PictureController {
                 pictureService.getQueryWrapper(pictureQueryRequest));
         // 获取封装类
         return ResultUtils.success(pictureService.getPictureVOPage(picturePage, request));
+    }
+
+    /**
+     * 分页获取图片列表（封装类），通过缓存
+     */
+    @ApiOperation("分页获取图片列表（封装类），通过缓存")
+    @PostMapping("/list/page/vo/cache")
+    public BaseResponse<Page<PictureVO>> listPictureVOByPageByCache(@RequestBody PictureQueryRequest pictureQueryRequest,
+                                                             HttpServletRequest request) {
+        long current = pictureQueryRequest.getCurrent();
+        long size = pictureQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        // 普通用户默认只能查看已经过审的图片
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+        // 构建缓存key
+        String queryCondition = JSONUtil.toJsonStr(pictureQueryRequest);
+        String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+        String key = String.format("yupicture:listPictureVOByPage:%s", hashKey);
+        // 先从缓存中获取
+        String cacheValue = stringRedisTemplate.opsForValue().get(key);
+        if (StringUtils.isNotBlank(cacheValue)) {
+            // 如果命中缓存，返回结果
+            Page<PictureVO> pictureVOPage = JSONUtil.toBean(cacheValue, Page.class);
+            return ResultUtils.success(pictureVOPage);
+        }
+        // 查询数据库
+        Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
+                pictureService.getQueryWrapper(pictureQueryRequest));
+        // 获取封装类
+        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
+        // 写入缓存
+        // 设置过期时间 5 ~ 10 分钟随机过期，防止缓存雪崩
+        int cacheExpireTime = 300 + RandomUtil.randomInt(0, 300);
+        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(pictureVOPage), cacheExpireTime, TimeUnit.SECONDS);
+        // 返回结果
+        return ResultUtils.success(pictureVOPage);
     }
 
     /**

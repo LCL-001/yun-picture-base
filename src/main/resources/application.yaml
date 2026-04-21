@@ -5,6 +5,12 @@ server:
 spring:
   application:
     name: yun-picture-backend
+  # Redis 配置
+  redis:
+    database: 1
+    host: 127.0.0.1
+    port: 6379
+    timeout: 5000
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -14,6 +20,8 @@ spring:
   servlet:
     multipart:
       max-file-size: 10MB
+#  profiles:
+#    active: local
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
