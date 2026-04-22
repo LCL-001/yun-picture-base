@@ -2,10 +2,8 @@ package com.lcl.yunpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lcl.yunpicturebackend.domain.dto.picture.PictureQueryRequest;
-import com.lcl.yunpicturebackend.domain.dto.picture.PictureReviewRequest;
-import com.lcl.yunpicturebackend.domain.dto.picture.PictureUploadByBatchRequest;
-import com.lcl.yunpicturebackend.domain.dto.picture.PictureUploadRequest;
+import com.lcl.yunpicturebackend.common.DeleteRequest;
+import com.lcl.yunpicturebackend.domain.dto.picture.*;
 import com.lcl.yunpicturebackend.domain.po.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lcl.yunpicturebackend.domain.po.User;
@@ -90,4 +88,38 @@ public interface IPictureService extends IService<Picture> {
      * @param loginUser 登录用户
      */
     void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 获取图片分页封装类（缓存）
+     *
+     * @param pictureQueryRequest 查询条件
+     * @param request 请求
+     * @return 图片分页封装类
+     */
+    Page<PictureVO> listPictureVOByPageByCache(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
+
+
+    /**
+     * 删除图片
+     *
+     * @param deleteRequest 删除请求
+     * @param request 请求
+     */
+    void deletePicture(DeleteRequest deleteRequest, HttpServletRequest request);
+
+    /**
+     * 更新图片
+     *
+     * @param pictureUpdateRequest 更新请求
+     * @param request 请求
+     */
+    void updatePicture(PictureUpdateRequest pictureUpdateRequest, HttpServletRequest request);
+
+    /**
+     * 编辑图片
+     *
+     * @param pictureEditRequest 编辑请求
+     * @param request 请求
+     */
+    void editPicture(PictureEditRequest pictureEditRequest, HttpServletRequest request);
 }
