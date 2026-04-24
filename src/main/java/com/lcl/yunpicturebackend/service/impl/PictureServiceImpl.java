@@ -24,6 +24,7 @@ import com.lcl.yunpicturebackend.enums.PictureReviewStatusEnum;
 import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yunpicturebackend.manager.CosManager;
 import com.lcl.yunpicturebackend.manager.upload.FilePictureUpload;
 import com.lcl.yunpicturebackend.manager.upload.PictureUploadTemplate;
 import com.lcl.yunpicturebackend.manager.upload.URLFilePictureUpload;
@@ -39,6 +40,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
@@ -70,6 +72,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     private final FilePictureUpload pictureUpload;
     private final URLFilePictureUpload urlFilePictureUpload;
     private final StringRedisTemplate stringRedisTemplate;
+    private final CosManager cosManager;
     private final Cache<String, String> LOCAL_CACHE =
             Caffeine.newBuilder().initialCapacity(1024)
                     .maximumSize(10000L)
@@ -455,6 +458,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         // 操作数据库
         boolean result = removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 清除 cos 中的图片资源
+        this.clearPictureFile(oldPicture);
         // 清除缓存
         clearPictureListCache();
     }
@@ -482,6 +487,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         // 操作数据库
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 清除 cos 中的图片资源
+        this.clearPictureFile(oldPicture);
         // 清除缓存
         this.clearPictureListCache();
     }
@@ -517,6 +524,28 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         // 清除缓存
         this.clearPictureListCache();
     }
+
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录使用
+        String pictureUrl = oldPicture.getUrl();
+        long count = this.lambdaQuery()
+                .eq(Picture::getUrl, pictureUrl)
+                .count();
+        // 有不止一条记录用到了该图片，不清理
+        if (count > 1) {
+            return;
+        }
+        // FIXME 注意，这里的 url 包含了域名，实际上只要传 key 值（存储路径）就够了
+        cosManager.deleteObject(oldPicture.getUrl());
+        // 清理缩略图
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            cosManager.deleteObject(thumbnailUrl);
+        }
+    }
+
 
     @Override
     public QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest) {

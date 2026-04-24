@@ -122,4 +122,10 @@ public interface IPictureService extends IService<Picture> {
      * @param request 请求
      */
     void editPicture(PictureEditRequest pictureEditRequest, HttpServletRequest request);
+
+    /**
+     * 清除图片文件
+     * @param oldPicture 旧图片
+     */
+    void clearPictureFile(Picture oldPicture);
 }

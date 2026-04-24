@@ -3,6 +3,7 @@ package com.lcl.yunpicturebackend.manager;
 import cn.hutool.core.io.FileUtil;
 import com.lcl.yunpicturebackend.config.CosClientConfig;
 import com.qcloud.cos.COSClient;
+import com.qcloud.cos.exception.CosClientException;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.GetObjectRequest;
 import com.qcloud.cos.model.PutObjectRequest;
@@ -47,6 +48,16 @@ public class CosManager {
     }
 
     /**
+     * 删除对象
+     *
+     * @param key 文件 key
+     */
+    public void deleteObject(String key) throws CosClientException {
+        cosClient.deleteObject(cosClientConfig.getBucket(), key);
+    }
+
+
+    /**
      * 上传对象（附带图片信息）
      *
      * @param key  唯一键
@@ -66,8 +77,8 @@ public class CosManager {
         compressRule.setRule("imageMogr2/format/webp");// 设置图片处理参数
         compressRule.setBucket(cosClientConfig.getBucket());// 设置处理后的文件存储桶
         rules.add(compressRule);// 添加图片处理规则
-        // 缩略图处理, 如果图片大小大于 2M，则生成缩略图
-        if (file.length() > 2 * 1024) {
+        // 缩略图处理, 如果图片大小大于 20 KB，则生成缩略图
+        if (file.length() > 20 * 1024) {
             PicOperations.Rule thumbnailRule = new PicOperations.Rule();
             String thumbnailKey = String.format(FileUtil.mainName(key) + "_thumbnail." + FileUtil.getSuffix(key));
             thumbnailRule.setFileId(thumbnailKey);// 设置处理后的文件名
