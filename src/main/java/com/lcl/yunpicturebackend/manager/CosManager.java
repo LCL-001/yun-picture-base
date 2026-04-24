@@ -66,6 +66,16 @@ public class CosManager {
         compressRule.setRule("imageMogr2/format/webp");// 设置图片处理参数
         compressRule.setBucket(cosClientConfig.getBucket());// 设置处理后的文件存储桶
         rules.add(compressRule);// 添加图片处理规则
+        // 缩略图处理, 如果图片大小大于 2M，则生成缩略图
+        if (file.length() > 2 * 1024) {
+            PicOperations.Rule thumbnailRule = new PicOperations.Rule();
+            String thumbnailKey = String.format(FileUtil.mainName(key) + "_thumbnail." + FileUtil.getSuffix(key));
+            thumbnailRule.setFileId(thumbnailKey);// 设置处理后的文件名
+            // 缩略规则 imageMogr2/thumbnail/<Width>x<Height>> (如果大于原图宽高，则不处理)
+            thumbnailRule.setRule(String.format("imageMogr2/thumbnail/%sx%s>", 256, 256));// 设置图片处理参数
+            thumbnailRule.setBucket(cosClientConfig.getBucket());// 设置处理后的文件存储桶
+            rules.add(thumbnailRule);// 添加图片处理规则
+        }
         // 构造处理参数
         picOperations.setRules(rules);
         putObjectRequest.setPicOperations(picOperations);

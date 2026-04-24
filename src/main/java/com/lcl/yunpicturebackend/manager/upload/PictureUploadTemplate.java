@@ -54,9 +54,14 @@ public abstract class PictureUploadTemplate {
             ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
             List<CIObject> objectList = processResults.getObjectList();
             if (CollUtil.isNotEmpty(objectList)) {
-                CIObject compressdCiObject = objectList.get(0);
+                CIObject compressdCiObject = objectList.get(0);// 压缩图
+                // 缩略图默认为压缩图
+                CIObject thumbnailCiObject = compressdCiObject;
+                if (objectList.size() > 1) {
+                    thumbnailCiObject = objectList.get(1);// 缩略图
+                }
                 // 封装压缩图返回结果
-                return buildResult(originalFilename, compressdCiObject);
+                return buildResult(originalFilename, compressdCiObject, thumbnailCiObject);
             }
             // 封装原图返回结果
             return buildResult(originalFilename, file, uploadPath, imageInfo);
@@ -69,7 +74,15 @@ public abstract class PictureUploadTemplate {
 
     }
 
-    private UploadPictureResult buildResult(String originalFilename, CIObject compressdCiObject) {
+    /**
+     * 构建上传结果
+     *
+     * @param originalFilename  原始文件名
+     * @param compressdCiObject 压缩图
+     * @param thumbnailCiObject
+     * @return
+     */
+    private UploadPictureResult buildResult(String originalFilename, CIObject compressdCiObject, CIObject thumbnailCiObject) {
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
         int picHeight = compressdCiObject.getHeight();
         int picWidth = compressdCiObject.getWidth();
@@ -82,6 +95,8 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPicFormat(compressdCiObject.getFormat());
         // 设置图片为压缩后的地址
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressdCiObject.getKey());
+        // 设置缩略图的地址
+        uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCiObject.getKey());
         return uploadPictureResult;
     }
 

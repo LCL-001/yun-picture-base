@@ -35,6 +35,9 @@ public class Picture implements Serializable {
     @ApiModelProperty(value = "图片 url")
     private String url;
 
+    @ApiModelProperty(value = "缩略图 url")
+    private String thumbnailUrl;
+
     @ApiModelProperty(value = "图片名称")
     private String name;
 
