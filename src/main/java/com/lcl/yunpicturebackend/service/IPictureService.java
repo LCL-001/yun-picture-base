@@ -128,4 +128,21 @@ public interface IPictureService extends IService<Picture> {
      * @param oldPicture 旧图片
      */
     void clearPictureFile(Picture oldPicture);
+
+    /**
+     * 检查图片权限
+     *
+     * @param loginUser 登录用户
+     * @param picture 图片
+     */
+    void checkPictureAuth(User loginUser, Picture picture);
+
+    /**
+     * 获取图片分页封装类（不缓存）
+     *
+     * @param pictureQueryRequest 查询条件
+     * @param request 请求
+     * @return 图片分页封装类
+     */
+    Page<Picture> listPictureVOByPage(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
 }

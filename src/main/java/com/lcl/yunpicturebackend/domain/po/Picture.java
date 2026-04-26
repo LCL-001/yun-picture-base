@@ -68,6 +68,9 @@ public class Picture implements Serializable {
     @ApiModelProperty(value = "创建用户 id")
     private Long userId;
 
+    @ApiModelProperty(value = "空间 id")
+    private Long spaceId;
+
     @ApiModelProperty(value = "状态：0-待审核; 1-通过; 2-拒绝")
     private Integer reviewStatus;
 
