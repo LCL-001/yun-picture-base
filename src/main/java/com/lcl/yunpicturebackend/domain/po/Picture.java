@@ -65,6 +65,9 @@ public class Picture implements Serializable {
     @ApiModelProperty(value = "图片格式")
     private String picFormat;
 
+    @ApiModelProperty(value = "图片主色调")
+    private String picColor;
+
     @ApiModelProperty(value = "创建用户 id")
     private Long userId;
 

@@ -11,6 +11,7 @@ import com.lcl.yunpicturebackend.domain.dto.file.UploadPictureResult;
 import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.manager.CosManager;
+import com.lcl.yunpicturebackend.utils.ColorTransformUtils;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
@@ -61,7 +62,7 @@ public abstract class PictureUploadTemplate {
                     thumbnailCiObject = objectList.get(1);// 缩略图
                 }
                 // 封装压缩图返回结果
-                return buildResult(originalFilename, compressdCiObject, thumbnailCiObject);
+                return buildResult(originalFilename, compressdCiObject, thumbnailCiObject, imageInfo);
             }
             // 封装原图返回结果
             return buildResult(originalFilename, file, uploadPath, imageInfo);
@@ -80,9 +81,10 @@ public abstract class PictureUploadTemplate {
      * @param originalFilename  原始文件名
      * @param compressdCiObject 压缩图
      * @param thumbnailCiObject
+     * @param imageInfo
      * @return
      */
-    private UploadPictureResult buildResult(String originalFilename, CIObject compressdCiObject, CIObject thumbnailCiObject) {
+    private UploadPictureResult buildResult(String originalFilename, CIObject compressdCiObject, CIObject thumbnailCiObject, ImageInfo imageInfo) {
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
         int picHeight = compressdCiObject.getHeight();
         int picWidth = compressdCiObject.getWidth();
@@ -93,6 +95,7 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPicHeight(picHeight);
         uploadPictureResult.setPicScale(picScale);
         uploadPictureResult.setPicFormat(compressdCiObject.getFormat());
+        uploadPictureResult.setPicColor(ColorTransformUtils.getStandardColor(imageInfo.getAve()));
         // 设置图片为压缩后的地址
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressdCiObject.getKey());
         // 设置缩略图的地址
@@ -122,6 +125,7 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPicHeight(picHeight);
         uploadPictureResult.setPicScale(picScale);
         uploadPictureResult.setPicFormat(imageInfo.getFormat());
+        uploadPictureResult.setPicColor(ColorTransformUtils.getStandardColor(imageInfo.getAve()));
         return uploadPictureResult;
     }
 

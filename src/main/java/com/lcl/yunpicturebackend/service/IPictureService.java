@@ -10,6 +10,7 @@ import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.domain.vo.PictureVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * <p>
@@ -145,4 +146,14 @@ public interface IPictureService extends IService<Picture> {
      * @return 图片分页封装类
      */
     Page<Picture> listPictureVOByPage(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
+
+    /**
+     * 根据颜色搜索图片
+     *
+     * @param spaceId 空间id
+     * @param picColor 图片颜色
+     * @param loginUser 登录用户
+     * @return 图片封装类
+     */
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
 }
