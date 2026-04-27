@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSON;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -34,7 +35,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lcl.yunpicturebackend.service.ISpaceService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import com.lcl.yunpicturebackend.utils.ColorSimilarUtils;
-import com.lcl.yunpicturebackend.utils.ColorTransformUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -264,6 +264,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         return uploadCount;
     }
 
+    /**
+     * 获取图片信息
+     *
+     * @param loginUser 登录用户
+     * @param uploadPictureResult 上传图片结果
+     * @param pictureUploadRequest 图片上传请求
+     * @param pictureId 图片ID
+     * @return 图片信息
+     */
     private static Picture getPicture(User loginUser, UploadPictureResult uploadPictureResult, PictureUploadRequest pictureUploadRequest, Long pictureId) {
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
@@ -478,6 +487,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         }
     }
 
+    /**
+     * 构建缓存Key
+     * @param request 查询条件
+     * @return
+     */
     private PictureQueryRequest buildCacheKey(PictureQueryRequest request) {
         // 只保留影响查询结果的字段，排除分页参数（current、pageSize）
         PictureQueryRequest cacheKey = new PictureQueryRequest();
@@ -494,6 +508,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         return cacheKey;
     }
 
+    /**
+     * 清空图片列表缓存
+     */
     private void clearPictureListCache() {
         // 清除Redis缓存（使用通配符删除）
         Set<String> keys = stringRedisTemplate.keys("yupicture:listPictureVOByPage:*");
@@ -539,7 +556,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     }
 
     @Override
-    @Transactional
     public void updatePicture(PictureUpdateRequest pictureUpdateRequest, HttpServletRequest request) {
         if (pictureUpdateRequest == null || pictureUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -768,6 +784,75 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         return sortedPictures.stream()
                 .map(PictureVO::objToVo)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser) {
+        List<Long> pictureIdList = pictureEditByBatchRequest.getPictureIdList();
+        Long spaceId = pictureEditByBatchRequest.getSpaceId();
+        String category = pictureEditByBatchRequest.getCategory();
+        List<String> tags = pictureEditByBatchRequest.getTags();
+        String nameRule = pictureEditByBatchRequest.getNameRule();
+
+        // 1. 校验参数
+        ThrowUtils.throwIf(spaceId == null || CollUtil.isEmpty(pictureIdList), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+
+        // 2. 校验空间权限
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        if (!loginUser.getId().equals(space.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
+        }
+
+        // 3. 查询指定图片，仅选择需要的字段
+        List<Picture> pictureList = this.lambdaQuery()
+                .select(Picture::getId, Picture::getSpaceId)
+                .eq(Picture::getSpaceId, spaceId)
+                .in(Picture::getId, pictureIdList)
+                .list();
+        if (CollUtil.isEmpty(pictureList)) {
+            return;
+        }
+
+        // 4. 更新分类和标签
+        pictureList.forEach(picture -> {
+            if (StrUtil.isNotBlank(category)) {
+                picture.setCategory(category);
+            }
+            if (CollUtil.isNotEmpty(tags)) {
+                picture.setTags(JSONUtil.toJsonStr(tags));
+            }
+        });
+
+        // 5. 批量重命名
+        fillPictureByNameRule(pictureList, nameRule);
+        // 6. 操作数据库，批量更新
+        boolean update = this.updateBatchById(pictureList);
+        ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR);
+    }
+
+    /**
+     * 根据命名规则批量重命名图片
+     *
+     * @param pictureList 图片列表
+     * @param nameRule    命名规则
+     */
+    private void fillPictureByNameRule(List<Picture> pictureList, String nameRule) {
+        if (CollUtil.isEmpty(pictureList) || StrUtil.isBlank(nameRule)) {
+            return;
+        }
+        long count = 1;
+        try {
+            for (Picture picture : pictureList) {
+                String newName = nameRule.replaceAll("\\{序号}", String.valueOf(count++));
+                picture.setName(newName);
+            }
+        } catch (Exception e) {
+            log.error("名称解析错误", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "名称解析错误");
+        }
     }
 
 }
