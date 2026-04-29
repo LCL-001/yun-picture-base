@@ -2,6 +2,8 @@ package com.lcl.yunpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskRequest;
+import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
 import com.lcl.yunpicturebackend.common.DeleteRequest;
 import com.lcl.yunpicturebackend.domain.dto.picture.*;
 import com.lcl.yunpicturebackend.domain.po.Picture;
@@ -164,4 +166,14 @@ public interface IPictureService extends IService<Picture> {
      * @param loginUser                 登录用户
      */
     void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+
+    /**
+     * 创建图片扩展任务
+     *
+     * @param createPictureOutPaintingTaskRequest 创建图片扩展任务请求
+     * @param loginUser                           登录用户
+     * @return 创建外画任务结果
+     */
+    CreateOutPaintingTaskResponse createOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
 }

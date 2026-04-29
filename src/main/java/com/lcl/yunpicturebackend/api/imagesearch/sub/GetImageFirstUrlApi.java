@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 
 @Slf4j
 public class GetImageFirstUrlApi {
-
     /**
      * 获取图片列表页面地址
      *
@@ -52,6 +51,7 @@ public class GetImageFirstUrlApi {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "搜索失败");
         }
     }
+
 
     public static void main(String[] args) {
         // 请求目标 URL
