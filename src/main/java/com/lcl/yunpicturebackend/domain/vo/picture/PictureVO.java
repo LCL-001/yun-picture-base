@@ -1,7 +1,8 @@
-package com.lcl.yunpicturebackend.domain.vo;
+package com.lcl.yunpicturebackend.domain.vo.picture;
 
 import cn.hutool.json.JSONUtil;
 import com.lcl.yunpicturebackend.domain.po.Picture;
+import com.lcl.yunpicturebackend.domain.vo.user.UserVO;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
@@ -108,7 +109,7 @@ public class PictureVO implements Serializable {
     /**  
      * 创建用户信息  
      */  
-    private UserVO user;  
+    private UserVO user;
   
     private static final long serialVersionUID = 1L;  
   

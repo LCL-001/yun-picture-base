@@ -1,6 +1,7 @@
-package com.lcl.yunpicturebackend.domain.vo;
+package com.lcl.yunpicturebackend.domain.vo.space;
 
 import com.lcl.yunpicturebackend.domain.po.Space;
+import com.lcl.yunpicturebackend.domain.vo.user.UserVO;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 

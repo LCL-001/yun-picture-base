@@ -13,8 +13,8 @@ import com.lcl.yunpicturebackend.domain.dto.space.SpaceQueryRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceUpdateRequest;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.lcl.yunpicturebackend.domain.po.User;
-import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
-import com.lcl.yunpicturebackend.domain.vo.UserVO;
+import com.lcl.yunpicturebackend.domain.vo.space.SpaceVO;
+import com.lcl.yunpicturebackend.domain.vo.user.UserVO;
 import com.lcl.yunpicturebackend.enums.SpaceLevelEnum;
 import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
@@ -208,12 +208,18 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         Space oldSpace = getById(id);
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可删除
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        this.checkSpaceAuth(oldSpace, loginUser);
         // 操作数据库
         boolean result = removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+    }
+
+    @Override
+    public void checkSpaceAuth(Space oldSpace, User loginUser) {
+        // 仅本人或管理员拥有权限
+        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
     }
 
     @Override
@@ -257,9 +263,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         Space oldSpace = this.getById(id);
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可编辑
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        this.checkSpaceAuth(oldSpace, loginUser);
         // 操作数据库
         boolean result = this.updateById(space);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

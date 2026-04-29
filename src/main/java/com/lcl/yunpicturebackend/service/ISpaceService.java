@@ -7,11 +7,10 @@ import com.lcl.yunpicturebackend.domain.dto.space.SpaceAddRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceEditRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceQueryRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceUpdateRequest;
-import com.lcl.yunpicturebackend.domain.po.Picture;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lcl.yunpicturebackend.domain.po.User;
-import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
+import com.lcl.yunpicturebackend.domain.vo.space.SpaceVO;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -99,4 +98,11 @@ public interface ISpaceService extends IService<Space> {
      */
     void editSpace(SpaceEditRequest spaceEditRequest, HttpServletRequest request);
 
+    /**
+     * 检查空间权限
+     *
+     * @param oldSpace 旧空间
+     * @param loginUser 登录用户
+     */
+    void checkSpaceAuth(Space oldSpace, User loginUser);
 }

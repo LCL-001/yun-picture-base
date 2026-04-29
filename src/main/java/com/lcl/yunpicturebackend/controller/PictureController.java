@@ -1,11 +1,6 @@
 package com.lcl.yunpicturebackend.controller;
 
 
-import cn.hutool.core.util.RandomUtil;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.http.HttpUtil;
-import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lcl.yunpicturebackend.annotation.AuthCheck;
 import com.lcl.yunpicturebackend.api.aliyunai.AliYunAiApi;
@@ -19,14 +14,11 @@ import com.lcl.yunpicturebackend.common.ResultUtils;
 import com.lcl.yunpicturebackend.constant.UserConstant;
 import com.lcl.yunpicturebackend.domain.dto.picture.*;
 import com.lcl.yunpicturebackend.domain.po.Picture;
-import com.lcl.yunpicturebackend.domain.po.Space;
-import com.lcl.yunpicturebackend.domain.vo.PictureTagCategory;
+import com.lcl.yunpicturebackend.domain.vo.picture.PictureTagCategory;
 import com.lcl.yunpicturebackend.domain.po.User;
-import com.lcl.yunpicturebackend.domain.vo.PictureVO;
-import com.lcl.yunpicturebackend.domain.vo.SpaceLevel;
-import com.lcl.yunpicturebackend.enums.PictureReviewStatusEnum;
+import com.lcl.yunpicturebackend.domain.vo.picture.PictureVO;
+import com.lcl.yunpicturebackend.domain.vo.space.SpaceLevel;
 import com.lcl.yunpicturebackend.enums.SpaceLevelEnum;
-import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.service.IPictureService;
@@ -34,19 +26,13 @@ import com.lcl.yunpicturebackend.service.IUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**

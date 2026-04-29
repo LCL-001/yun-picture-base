@@ -9,21 +9,16 @@ import com.lcl.yunpicturebackend.common.ResultUtils;
 import com.lcl.yunpicturebackend.constant.UserConstant;
 import com.lcl.yunpicturebackend.domain.dto.space.*;
 import com.lcl.yunpicturebackend.domain.po.Space;
-import com.lcl.yunpicturebackend.domain.po.User;
-import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
+import com.lcl.yunpicturebackend.domain.vo.space.SpaceVO;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.service.ISpaceService;
-import com.lcl.yunpicturebackend.service.IUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * <p>
