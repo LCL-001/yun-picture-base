@@ -7,8 +7,8 @@ import com.lcl.yunpicturebackend.domain.dto.user.UserQueryRequest;
 import com.lcl.yunpicturebackend.domain.dto.user.UserRegisterRequest;
 import com.lcl.yunpicturebackend.domain.po.User;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lcl.yunpicturebackend.domain.vo.user.LoginUserVO;
-import com.lcl.yunpicturebackend.domain.vo.user.UserVO;
+import com.lcl.yunpicturebackend.domain.vo.LoginUserVO;
+import com.lcl.yunpicturebackend.domain.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;

@@ -12,12 +12,13 @@ import com.lcl.yunpicturebackend.domain.dto.user.UserLoginRequest;
 import com.lcl.yunpicturebackend.domain.dto.user.UserQueryRequest;
 import com.lcl.yunpicturebackend.domain.dto.user.UserRegisterRequest;
 import com.lcl.yunpicturebackend.domain.po.User;
-import com.lcl.yunpicturebackend.domain.vo.user.LoginUserVO;
-import com.lcl.yunpicturebackend.domain.vo.user.UserVO;
+import com.lcl.yunpicturebackend.domain.vo.LoginUserVO;
+import com.lcl.yunpicturebackend.domain.vo.UserVO;
 import com.lcl.yunpicturebackend.enums.UserRoleEnum;
 import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yunpicturebackend.manager.auth.StpKit;
 import com.lcl.yunpicturebackend.mapper.UserMapper;
 import com.lcl.yunpicturebackend.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -29,6 +30,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.lcl.yunpicturebackend.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * <p>
@@ -91,14 +94,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 .one();
         ThrowUtils.throwIf(user == null, ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         // 3. 记录用户的登录态
-        request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+        // 4. 记录用户登录态到 Sa-token，便于空间鉴权时使用，注意保证该用户信息与 SpringSession 中的信息过期时间一致
+        StpKit.SPACE.login(user.getId());
+        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, user);
+
         return ResultUtils.success(BeanUtil.copyProperties(user, LoginUserVO.class));
     }
 
     @Override
     public User getLoginUser(HttpServletRequest request) {
         // 1. 判断是否已登录
-        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User currentUser = (User) userObj;
         ThrowUtils.throwIf(currentUser == null || currentUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR);
         // 2. 获取当前登录的用户信息
@@ -111,11 +118,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public BaseResponse<Boolean> logout(HttpServletRequest request) {
         // 1. 判断是否已登录
-        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User currentUser = (User) userObj;
         ThrowUtils.throwIf(currentUser == null || currentUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR);
         // 2. 移除登录态
-        request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
         // 3. 返回
         return ResultUtils.success(true);
     }

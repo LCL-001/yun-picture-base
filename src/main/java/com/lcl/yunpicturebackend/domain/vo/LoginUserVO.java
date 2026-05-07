@@ -1,4 +1,4 @@
-package com.lcl.yunpicturebackend.domain.vo.user;
+package com.lcl.yunpicturebackend.domain.vo;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;

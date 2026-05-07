@@ -1,4 +1,4 @@
-package com.lcl.yunpicturebackend.domain.vo.space;
+package com.lcl.yunpicturebackend.domain.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

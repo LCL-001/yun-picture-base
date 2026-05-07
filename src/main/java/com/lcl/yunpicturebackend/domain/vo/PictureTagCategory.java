@@ -1,4 +1,4 @@
-package com.lcl.yunpicturebackend.domain.vo.picture;
+package com.lcl.yunpicturebackend.domain.vo;
 
 import lombok.Data;
 

@@ -10,7 +10,7 @@ import com.lcl.yunpicturebackend.domain.dto.space.SpaceUpdateRequest;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lcl.yunpicturebackend.domain.po.User;
-import com.lcl.yunpicturebackend.domain.vo.space.SpaceVO;
+import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
 
 import javax.servlet.http.HttpServletRequest;
 
