@@ -2,12 +2,12 @@ package com.lcl.yunpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
 import com.lcl.yunpicturebackend.domain.dto.picture.*;
 import com.lcl.yunpicturebackend.domain.po.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.PictureVO;
 
 import javax.servlet.http.HttpServletRequest;

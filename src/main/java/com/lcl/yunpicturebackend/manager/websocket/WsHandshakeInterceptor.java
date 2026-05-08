@@ -4,13 +4,13 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.lcl.yunpicturebackend.domain.po.Picture;
 import com.lcl.yunpicturebackend.domain.po.Space;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.enums.SpaceTypeEnum;
 import com.lcl.yunpicturebackend.manager.auth.SpaceUserAuthManager;
 import com.lcl.yunpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.lcl.yunpicturebackend.service.IPictureService;
 import com.lcl.yunpicturebackend.service.ISpaceService;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import groovyjarjarantlr4.v4.runtime.misc.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
@@ -33,7 +33,7 @@ import java.util.Map;
 public class WsHandshakeInterceptor implements HandshakeInterceptor {
 
     @Resource
-    private IUserService userService;
+    private UserApplicationService userService;
 
     @Resource
     private IPictureService pictureService;

@@ -1,6 +1,6 @@
 package com.lcl.yunpicturebackend.domain.dto.picture;
 
-import com.lcl.yunpicturebackend.common.PageRequest;
+import com.lcl.yupicture.infrastructure.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

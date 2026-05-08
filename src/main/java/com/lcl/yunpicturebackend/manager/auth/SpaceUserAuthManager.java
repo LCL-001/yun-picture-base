@@ -5,13 +5,13 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.lcl.yunpicturebackend.domain.po.SpaceUser;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.enums.SpaceRoleEnum;
 import com.lcl.yunpicturebackend.enums.SpaceTypeEnum;
 import com.lcl.yunpicturebackend.manager.auth.model.SpaceUserAuthConfig;
 import com.lcl.yunpicturebackend.manager.auth.model.SpaceUserRole;
 import com.lcl.yunpicturebackend.service.ISpaceUserService;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -28,7 +28,7 @@ public class SpaceUserAuthManager {
     private ISpaceUserService spaceUserService;
 
     @Resource
-    private IUserService userService;
+    private UserApplicationService userService;
 
     public static final SpaceUserAuthConfig SPACE_USER_AUTH_CONFIG;
 
@@ -66,7 +66,7 @@ public class SpaceUserAuthManager {
         List<String> ADMIN_PERMISSIONS = getPermissionsByRole(SpaceRoleEnum.ADMIN.getValue());
         // 公共图库
         if (space == null) {
-            if (userService.isAdmin(loginUser)) {
+            if (loginUser.isAdmin()) {
                 return ADMIN_PERMISSIONS;
             }
             return new ArrayList<>();
@@ -79,7 +79,7 @@ public class SpaceUserAuthManager {
         switch (spaceTypeEnum) {
             case PRIVATE:
                 // 私有空间，仅本人或管理员有所有权限
-                if (space.getUserId().equals(loginUser.getId()) || userService.isAdmin(loginUser)) {
+                if (space.getUserId().equals(loginUser.getId()) || loginUser.isAdmin()) {
                     return ADMIN_PERMISSIONS;
                 } else {
                     return new ArrayList<>();

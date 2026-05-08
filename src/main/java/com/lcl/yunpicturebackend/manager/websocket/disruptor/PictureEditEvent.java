@@ -1,6 +1,6 @@
 package com.lcl.yunpicturebackend.manager.websocket.disruptor;
 
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditRequestMessage;
 import lombok.Data;
 import org.springframework.web.socket.WebSocketSession;

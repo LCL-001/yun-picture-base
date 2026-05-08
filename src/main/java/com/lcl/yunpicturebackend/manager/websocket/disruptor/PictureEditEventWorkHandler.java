@@ -1,12 +1,12 @@
 package com.lcl.yunpicturebackend.manager.websocket.disruptor;
 
 import cn.hutool.json.JSONUtil;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.manager.websocket.PictureEditHandler;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditMessageTypeEnum;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditRequestMessage;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditResponseMessage;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import com.lmax.disruptor.WorkHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -28,7 +28,7 @@ public class PictureEditEventWorkHandler implements WorkHandler<PictureEditEvent
     private PictureEditHandler pictureEditHandler;
 
     @Resource
-    private IUserService userService;
+    private UserApplicationService userService;
 
     @Override
     public void onEvent(PictureEditEvent event) throws Exception {

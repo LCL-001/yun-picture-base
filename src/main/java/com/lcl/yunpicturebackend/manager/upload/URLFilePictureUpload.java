@@ -7,9 +7,9 @@ import cn.hutool.http.HttpStatus;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.lcl.yunpicturebackend.exception.BusinessException;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yupicture.infrastructure.exception.BusinessException;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.File;

@@ -2,14 +2,14 @@ package com.lcl.yunpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceAddRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceEditRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceQueryRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceUpdateRequest;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
 
 import javax.servlet.http.HttpServletRequest;

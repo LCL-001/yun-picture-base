@@ -1,12 +1,12 @@
 package com.lcl.yunpicturebackend.controller;
 
-import com.lcl.yunpicturebackend.annotation.AuthCheck;
-import com.lcl.yunpicturebackend.common.BaseResponse;
-import com.lcl.yunpicturebackend.common.ResultUtils;
-import com.lcl.yunpicturebackend.constant.UserConstant;
-import com.lcl.yunpicturebackend.exception.BusinessException;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.manager.CosManager;
+import com.lcl.yupicture.infrastructure.annotation.AuthCheck;
+import com.lcl.yupicture.infrastructure.common.BaseResponse;
+import com.lcl.yupicture.infrastructure.common.ResultUtils;
+import com.lcl.yupicture.domain.user.constant.UserConstant;
+import com.lcl.yupicture.infrastructure.exception.BusinessException;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.api.CosManager;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.COSObjectInputStream;
 import com.qcloud.cos.utils.IOUtils;

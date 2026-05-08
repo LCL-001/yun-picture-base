@@ -1,22 +1,22 @@
 package com.lcl.yunpicturebackend.controller;
 
 import cn.hutool.core.util.ObjectUtil;
-import com.lcl.yunpicturebackend.common.BaseResponse;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
-import com.lcl.yunpicturebackend.common.ResultUtils;
+import com.lcl.yupicture.infrastructure.common.BaseResponse;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.common.ResultUtils;
 import com.lcl.yunpicturebackend.domain.dto.spaceuser.SpaceUserAddRequest;
 import com.lcl.yunpicturebackend.domain.dto.spaceuser.SpaceUserEditRequest;
 import com.lcl.yunpicturebackend.domain.dto.spaceuser.SpaceUserQueryRequest;
 import com.lcl.yunpicturebackend.domain.po.SpaceUser;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.SpaceUserVO;
-import com.lcl.yunpicturebackend.exception.BusinessException;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yupicture.infrastructure.exception.BusinessException;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.manager.auth.annotation.SaSpaceCheckPermission;
 import com.lcl.yunpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.lcl.yunpicturebackend.service.ISpaceUserService;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,7 @@ public class SpaceUserController {
     private ISpaceUserService spaceUserService;
 
     @Resource
-    private IUserService userService;
+    private UserApplicationService userApplicationService;
 
     /**
      * 添加成员到空间
@@ -140,7 +140,7 @@ public class SpaceUserController {
     @ApiOperation("查询我加入的团队空间列表")
     @PostMapping("/list/my")
     public BaseResponse<List<SpaceUserVO>> listMyTeamSpace(HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         SpaceUserQueryRequest spaceUserQueryRequest = new SpaceUserQueryRequest();
         spaceUserQueryRequest.setUserId(loginUser.getId());
         List<SpaceUser> spaceUserList = spaceUserService.list(

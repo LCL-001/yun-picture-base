@@ -2,6 +2,7 @@ package com.lcl.yunpicturebackend.domain.vo;
 
 import cn.hutool.json.JSONUtil;
 import com.lcl.yunpicturebackend.domain.po.Picture;
+import com.lcl.yupicture.interfaces.vo.user.UserVO;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 

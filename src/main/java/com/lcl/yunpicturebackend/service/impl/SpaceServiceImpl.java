@@ -6,27 +6,27 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceAddRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceEditRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceQueryRequest;
 import com.lcl.yunpicturebackend.domain.dto.space.SpaceUpdateRequest;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.lcl.yunpicturebackend.domain.po.SpaceUser;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
-import com.lcl.yunpicturebackend.domain.vo.UserVO;
+import com.lcl.yupicture.interfaces.vo.user.UserVO;
 import com.lcl.yunpicturebackend.enums.SpaceLevelEnum;
 import com.lcl.yunpicturebackend.enums.SpaceRoleEnum;
 import com.lcl.yunpicturebackend.enums.SpaceTypeEnum;
-import com.lcl.yunpicturebackend.exception.BusinessException;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
-import com.lcl.yunpicturebackend.mapper.SpaceMapper;
+import com.lcl.yupicture.infrastructure.exception.BusinessException;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
+import com.lcl.yupicture.infrastructure.mapper.SpaceMapper;
 import com.lcl.yunpicturebackend.service.ISpaceService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lcl.yunpicturebackend.service.ISpaceUserService;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements ISpaceService {
 
-    private final IUserService userService;
+    private final UserApplicationService userService;
     private final TransactionTemplate transactionTemplate;
     private final ISpaceUserService spaceUserService;
 //    @Resource
@@ -81,7 +81,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         // 权限校验
         Long userId = loginUser.getId();
         space.setUserId(userId);
-        if (SpaceLevelEnum.COMMON.getValue() != space.getSpaceLevel() && !userService.isAdmin(loginUser)) {
+        if (SpaceLevelEnum.COMMON.getValue() != space.getSpaceLevel() && !loginUser.isAdmin()) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限创建指定级别空间");
         }
         // 针对用户加锁
@@ -251,7 +251,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
     @Override
     public void checkSpaceAuth(Space oldSpace, User loginUser) {
         // 仅本人或管理员拥有权限
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+        if (!oldSpace.getUserId().equals(loginUser.getId()) && !loginUser.isAdmin()) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
     }

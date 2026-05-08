@@ -12,33 +12,33 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.lcl.yunpicturebackend.api.aliyunai.AliYunAiApi;
-import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskRequest;
-import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.api.aliyunai.AliYunAiApi;
+import com.lcl.yupicture.infrastructure.api.aliyunai.model.CreateOutPaintingTaskRequest;
+import com.lcl.yupicture.infrastructure.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
 import com.lcl.yunpicturebackend.domain.dto.file.UploadPictureResult;
 import com.lcl.yunpicturebackend.domain.dto.picture.*;
 import com.lcl.yunpicturebackend.domain.po.Picture;
 import com.lcl.yunpicturebackend.domain.po.Space;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.PictureVO;
-import com.lcl.yunpicturebackend.domain.vo.UserVO;
+import com.lcl.yupicture.interfaces.vo.user.UserVO;
 import com.lcl.yunpicturebackend.enums.PictureReviewStatusEnum;
-import com.lcl.yunpicturebackend.exception.BusinessException;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
-import com.lcl.yunpicturebackend.manager.CosManager;
+import com.lcl.yupicture.infrastructure.exception.BusinessException;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
+import com.lcl.yupicture.infrastructure.api.CosManager;
 import com.lcl.yunpicturebackend.manager.auth.StpKit;
 import com.lcl.yunpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.lcl.yunpicturebackend.manager.upload.FilePictureUpload;
 import com.lcl.yunpicturebackend.manager.upload.PictureUploadTemplate;
 import com.lcl.yunpicturebackend.manager.upload.URLFilePictureUpload;
-import com.lcl.yunpicturebackend.mapper.PictureMapper;
+import com.lcl.yupicture.infrastructure.mapper.PictureMapper;
 import com.lcl.yunpicturebackend.service.IPictureService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lcl.yunpicturebackend.service.ISpaceService;
-import com.lcl.yunpicturebackend.service.IUserService;
-import com.lcl.yunpicturebackend.utils.ColorSimilarUtils;
+import com.lcl.yupicture.application.service.UserApplicationService;
+import com.lcl.yupicture.infrastructure.utils.ColorSimilarUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -75,7 +75,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> implements IPictureService {
 
-    private final IUserService userService;
+    private final UserApplicationService userService;
 
     private final ISpaceService spaceService;
 
@@ -131,7 +131,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             Picture oldPicture = this.getById(pictureId);
             ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
             // 仅本人或管理员可编辑
-            ThrowUtils.throwIf(!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser), ErrorCode.NO_AUTH_ERROR);
+            ThrowUtils.throwIf(!oldPicture.getUserId().equals(loginUser.getId()) && !loginUser.isAdmin(), ErrorCode.NO_AUTH_ERROR);
             // 校验空间是否一致
             // 如果没有传送空间id，则使用图片原来的空间id
             if (spaceId == null) {
@@ -394,7 +394,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 
     @Override
     public void fillReviewParams(Picture picture, User loginUser) {
-        if (userService.isAdmin(loginUser)) {
+        if (loginUser.isAdmin()) {
             // 如果是管理员，自动过审
             picture.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
             picture.setReviewTime(new Date());
@@ -709,7 +709,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         Long spaceId = picture.getSpaceId();
         if (spaceId == null) {
             // 公共图库，仅本人或管理员可操作
-            if (!picture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            if (!picture.getUserId().equals(loginUser.getId()) && !loginUser.isAdmin()) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
         } else {

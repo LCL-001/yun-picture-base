@@ -3,19 +3,20 @@ package com.lcl.yunpicturebackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lcl.yunpicturebackend.annotation.AuthCheck;
-import com.lcl.yunpicturebackend.common.BaseResponse;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
-import com.lcl.yunpicturebackend.common.ResultUtils;
-import com.lcl.yunpicturebackend.constant.UserConstant;
-import com.lcl.yunpicturebackend.domain.dto.user.*;
-import com.lcl.yunpicturebackend.domain.po.User;
-import com.lcl.yunpicturebackend.domain.vo.LoginUserVO;
-import com.lcl.yunpicturebackend.domain.vo.UserVO;
-import com.lcl.yunpicturebackend.exception.BusinessException;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.infrastructure.annotation.AuthCheck;
+import com.lcl.yupicture.infrastructure.common.BaseResponse;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.common.ResultUtils;
+import com.lcl.yupicture.domain.user.constant.UserConstant;
+import com.lcl.yupicture.domain.user.entity.User;
+import com.lcl.yupicture.interfaces.assembler.UserAssembler;
+import com.lcl.yupicture.interfaces.vo.user.LoginUserVO;
+import com.lcl.yupicture.interfaces.vo.user.UserVO;
+import com.lcl.yupicture.infrastructure.exception.BusinessException;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
+import com.lcl.yupicture.application.service.UserApplicationService;
+import com.lcl.yupicture.interfaces.dto.user.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -39,31 +40,31 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final IUserService userService;
+    private final UserApplicationService userApplicationService;
     @ApiOperation("用户注册")
     @PostMapping("/register")
     public BaseResponse<Long> register(@RequestBody UserRegisterRequest userRegisterRequest) {
-        return userService.register(userRegisterRequest);
+        return userApplicationService.register(userRegisterRequest);
     }
 
     @ApiOperation("用户登录")
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> login(@RequestBody UserLoginRequest userLoginRequest,
                                            HttpServletRequest request) {
-        return userService.login(userLoginRequest, request);
+        return userApplicationService.login(userLoginRequest, request);
     }
 
     @ApiOperation("获取当前登录用户")
     @GetMapping("/get/login")
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         return ResultUtils.success(BeanUtil.copyProperties(loginUser, LoginUserVO.class));
     }
 
     @ApiOperation("用户注销")
     @PostMapping("/logout")
     public BaseResponse<Boolean> logout(HttpServletRequest request) {
-        return userService.logout(request);
+        return userApplicationService.logout(request);
     }
 
     /**
@@ -74,15 +75,8 @@ public class UserController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
         ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
-        User user = new User();
-        BeanUtils.copyProperties(userAddRequest, user);
-        // 默认密码 12345678
-        final String DEFAULT_PASSWORD = "12345678";
-        String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
-        user.setUserPassword(encryptPassword);
-        boolean result = userService.save(user);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(user.getId());
+        User userEntity = UserAssembler.toUserEntity(userAddRequest);
+        return ResultUtils.success(userApplicationService.addUser(userEntity));
     }
 
     /**
@@ -92,10 +86,7 @@ public class UserController {
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<User> getUserById(long id) {
-        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        User user = userService.getById(id);
-        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(user);
+        return ResultUtils.success(userApplicationService.getUserById(id));
     }
 
     /**
@@ -104,9 +95,7 @@ public class UserController {
     @ApiOperation("根据 id 获取包装类")
     @GetMapping("/get/vo")
     public BaseResponse<UserVO> getUserVOById(long id) {
-        BaseResponse<User> response = getUserById(id);
-        User user = response.getData();
-        return ResultUtils.success(userService.getUserVO(user));
+        return ResultUtils.success(userApplicationService.getUserVOById(id));
     }
 
     /**
@@ -116,10 +105,7 @@ public class UserController {
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
-        if (deleteRequest == null || deleteRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        boolean b = userService.removeById(deleteRequest.getId());
+        boolean b = userApplicationService.deleteUser(deleteRequest);
         return ResultUtils.success(b);
     }
 
@@ -133,10 +119,8 @@ public class UserController {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        BeanUtils.copyProperties(userUpdateRequest, user);
-        boolean result = userService.updateById(user);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        User userEntity = UserAssembler.toUserEntity(userUpdateRequest);
+        userApplicationService.updateUser(userEntity);
         return ResultUtils.success(true);
     }
 
@@ -149,15 +133,7 @@ public class UserController {
     @PostMapping("/list/page/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
-        ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
-        long current = userQueryRequest.getCurrent();
-        long pageSize = userQueryRequest.getPageSize();
-        Page<User> userPage = userService.page(new Page<>(current, pageSize),
-                userService.getQueryWrapper(userQueryRequest));
-        Page<UserVO> userVOPage = new Page<>(current, pageSize, userPage.getTotal());
-        List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
-        userVOPage.setRecords(userVOList);
-        return ResultUtils.success(userVOPage);
+        return ResultUtils.success(userApplicationService.listUserVOByPage(userQueryRequest));
     }
 
 }

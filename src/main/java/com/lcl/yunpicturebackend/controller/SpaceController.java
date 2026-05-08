@@ -2,20 +2,20 @@ package com.lcl.yunpicturebackend.controller;
 
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lcl.yunpicturebackend.annotation.AuthCheck;
-import com.lcl.yunpicturebackend.common.BaseResponse;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
-import com.lcl.yunpicturebackend.common.ResultUtils;
-import com.lcl.yunpicturebackend.constant.UserConstant;
+import com.lcl.yupicture.infrastructure.annotation.AuthCheck;
+import com.lcl.yupicture.infrastructure.common.BaseResponse;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.common.ResultUtils;
+import com.lcl.yupicture.domain.user.constant.UserConstant;
 import com.lcl.yunpicturebackend.domain.dto.space.*;
 import com.lcl.yunpicturebackend.domain.po.Space;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.manager.auth.SpaceUserAuthManager;
 import com.lcl.yunpicturebackend.service.ISpaceService;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,7 @@ import java.util.List;
 @Api(tags = "空间相关接口")
 public class SpaceController {
     private final ISpaceService spaceService;
-    private final IUserService userService;
+    private final UserApplicationService userApplicationService;
     private final SpaceUserAuthManager spaceUserAuthManager;
 
     /**
@@ -100,7 +100,7 @@ public class SpaceController {
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
 
         SpaceVO spaceVO = spaceService.getSpaceVO(space, request);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         List<String> permissionList = spaceUserAuthManager.getPermissionList(space, loginUser);
         spaceVO.setPermissionList(permissionList);
         // 获取封装类

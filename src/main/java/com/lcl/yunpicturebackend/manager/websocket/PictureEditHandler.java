@@ -5,13 +5,13 @@ import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.manager.websocket.disruptor.PictureEditEventProducer;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditActionEnum;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditMessageTypeEnum;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditRequestMessage;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditResponseMessage;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import groovyjarjarantlr4.v4.runtime.misc.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -36,7 +36,7 @@ public class PictureEditHandler extends TextWebSocketHandler {
     private final Map<Long, Set<WebSocketSession>> pictureSessions = new ConcurrentHashMap<>();
 
     @Resource
-    private IUserService userService;
+    private UserApplicationService userService;
 
     @Resource
     private PictureEditEventProducer pictureEditEventProducer;

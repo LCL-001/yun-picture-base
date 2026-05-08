@@ -8,19 +8,19 @@ import com.lcl.yunpicturebackend.domain.dto.spaceuser.SpaceUserAddRequest;
 import com.lcl.yunpicturebackend.domain.dto.spaceuser.SpaceUserQueryRequest;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.lcl.yunpicturebackend.domain.po.SpaceUser;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.SpaceUserVO;
 import com.lcl.yunpicturebackend.domain.vo.SpaceVO;
-import com.lcl.yunpicturebackend.domain.vo.UserVO;
+import com.lcl.yupicture.interfaces.vo.user.UserVO;
 import com.lcl.yunpicturebackend.enums.SpaceRoleEnum;
-import com.lcl.yunpicturebackend.exception.BusinessException;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
-import com.lcl.yunpicturebackend.mapper.SpaceUserMapper;
+import com.lcl.yupicture.infrastructure.exception.BusinessException;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
+import com.lcl.yupicture.infrastructure.mapper.SpaceUserMapper;
 import com.lcl.yunpicturebackend.service.ISpaceService;
 import com.lcl.yunpicturebackend.service.ISpaceUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Lazy;
@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser> implements ISpaceUserService {
 
-    private final IUserService userService;
+    private final UserApplicationService userService;
     @Resource
     @Lazy
     private ISpaceService spaceService;

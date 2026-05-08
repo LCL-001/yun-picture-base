@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.lcl.yunpicturebackend.domain.dto.space.analyze.*;
 import com.lcl.yunpicturebackend.domain.vo.space.analyze.*;
 import com.lcl.yunpicturebackend.domain.po.Space;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 
 import java.util.List;
 

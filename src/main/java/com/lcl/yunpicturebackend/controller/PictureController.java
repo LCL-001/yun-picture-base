@@ -2,33 +2,33 @@ package com.lcl.yunpicturebackend.controller;
 
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lcl.yunpicturebackend.annotation.AuthCheck;
-import com.lcl.yunpicturebackend.api.aliyunai.AliYunAiApi;
-import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
-import com.lcl.yunpicturebackend.api.aliyunai.model.GetOutPaintingTaskResponse;
-import com.lcl.yunpicturebackend.api.imagesearch.ImageSearchApiFacade;
-import com.lcl.yunpicturebackend.api.imagesearch.model.ImageSearchResult;
-import com.lcl.yunpicturebackend.common.BaseResponse;
-import com.lcl.yunpicturebackend.common.DeleteRequest;
-import com.lcl.yunpicturebackend.common.ResultUtils;
-import com.lcl.yunpicturebackend.constant.UserConstant;
+import com.lcl.yupicture.infrastructure.annotation.AuthCheck;
+import com.lcl.yupicture.infrastructure.api.aliyunai.AliYunAiApi;
+import com.lcl.yupicture.infrastructure.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.lcl.yupicture.infrastructure.api.aliyunai.model.GetOutPaintingTaskResponse;
+import com.lcl.yupicture.infrastructure.api.imagesearch.ImageSearchApiFacade;
+import com.lcl.yupicture.infrastructure.api.imagesearch.model.ImageSearchResult;
+import com.lcl.yupicture.infrastructure.common.BaseResponse;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
+import com.lcl.yupicture.infrastructure.common.ResultUtils;
+import com.lcl.yupicture.domain.user.constant.UserConstant;
 import com.lcl.yunpicturebackend.domain.dto.picture.*;
 import com.lcl.yunpicturebackend.domain.po.Picture;
 import com.lcl.yunpicturebackend.domain.po.Space;
 import com.lcl.yunpicturebackend.domain.vo.PictureTagCategory;
-import com.lcl.yunpicturebackend.domain.po.User;
+import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yunpicturebackend.domain.vo.PictureVO;
 import com.lcl.yunpicturebackend.domain.vo.SpaceLevel;
 import com.lcl.yunpicturebackend.enums.SpaceLevelEnum;
-import com.lcl.yunpicturebackend.exception.ErrorCode;
-import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yupicture.infrastructure.exception.ErrorCode;
+import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.manager.auth.SpaceUserAuthManager;
 import com.lcl.yunpicturebackend.manager.auth.StpKit;
 import com.lcl.yunpicturebackend.manager.auth.annotation.SaSpaceCheckPermission;
 import com.lcl.yunpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.lcl.yunpicturebackend.service.IPictureService;
 import com.lcl.yunpicturebackend.service.ISpaceService;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yupicture.application.service.UserApplicationService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 public class PictureController {
 
     private final IPictureService pictureService;
-    private final IUserService userService;
+    private final UserApplicationService userApplicationService;
     private final AliYunAiApi aliYunAiApi;
     private final ISpaceService spaceService;
     private final SpaceUserAuthManager spaceUserAuthManager;
@@ -68,7 +68,7 @@ public class PictureController {
                                                HttpServletRequest request) {
         ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR);
         // 获取登录用户
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         pictureService.doPictureReview(pictureReviewRequest, loginUser);
         return BaseResponse.success(true);
     }
@@ -85,7 +85,7 @@ public class PictureController {
             @RequestPart("file") MultipartFile multipartFile,
             PictureUploadRequest pictureUploadRequest,
             HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
         return BaseResponse.success(pictureVO);
     }
@@ -102,7 +102,7 @@ public class PictureController {
             @RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
             HttpServletRequest request) {
         ThrowUtils.throwIf(pictureUploadByBatchRequest == null, ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         int uploadCount = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
         return BaseResponse.success(uploadCount);
     }
@@ -119,7 +119,7 @@ public class PictureController {
     public BaseResponse<PictureVO> uploadPicture(
             @RequestBody PictureUploadRequest pictureUploadRequest,
             HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         String fileUrl = pictureUploadRequest.getFileUrl();
         PictureVO pictureVO = pictureService.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
         return BaseResponse.success(pictureVO);
@@ -185,7 +185,7 @@ public class PictureController {
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
         }
         // 获取权限列表
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         List<String> permissionList = spaceUserAuthManager.getPermissionList(space, loginUser);
         PictureVO pictureVO = pictureService.getPictureVO(picture, request);
         pictureVO.setPermissionList(permissionList);
@@ -305,7 +305,7 @@ public class PictureController {
         ThrowUtils.throwIf(searchPictureByColorRequest == null, ErrorCode.PARAMS_ERROR);
         String picColor = searchPictureByColorRequest.getPicColor();
         Long spaceId = searchPictureByColorRequest.getSpaceId();
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         List<PictureVO> result = pictureService.searchPictureByColor(spaceId, picColor, loginUser);
         return ResultUtils.success(result);
     }
@@ -318,7 +318,7 @@ public class PictureController {
     @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_EDIT)
     public BaseResponse<Boolean> editPictureByBatch(@RequestBody PictureEditByBatchRequest pictureEditByBatchRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(pictureEditByBatchRequest == null, ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         pictureService.editPictureByBatch(pictureEditByBatchRequest, loginUser);
         return ResultUtils.success(true);
     }
@@ -332,7 +332,7 @@ public class PictureController {
     public BaseResponse<CreateOutPaintingTaskResponse> createOutPaintingTask(@RequestBody CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(createPictureOutPaintingTaskRequest == null || createPictureOutPaintingTaskRequest.getPictureId() == null,
                 ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userApplicationService.getLoginUser(request);
         CreateOutPaintingTaskResponse response = pictureService.createOutPaintingTask(createPictureOutPaintingTaskRequest, loginUser);
         return ResultUtils.success(response);
     }

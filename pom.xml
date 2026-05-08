@@ -163,7 +163,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.lcl.yunpicturebackend.YunPictureBaseApplication</mainClass>
+                    <mainClass>com.lcl.yupicture.YunPictureBaseApplication</mainClass>
                     <skip>true</skip>
                 </configuration>
                 <executions>

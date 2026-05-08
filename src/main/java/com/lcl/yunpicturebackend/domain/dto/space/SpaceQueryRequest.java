@@ -1,11 +1,10 @@
 package com.lcl.yunpicturebackend.domain.dto.space;
 
-import com.lcl.yunpicturebackend.common.PageRequest;
+import com.lcl.yupicture.infrastructure.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
-import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
