@@ -1,6 +1,6 @@
 package com.lcl.yupicture.infrastructure.mapper;
 
-import com.lcl.yunpicturebackend.domain.po.Picture;
+import com.lcl.yupicture.domain.picture.entity.Picture;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

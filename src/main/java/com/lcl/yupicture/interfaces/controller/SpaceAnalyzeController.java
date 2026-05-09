@@ -1,0 +1,103 @@
+package com.lcl.yupicture.interfaces.controller;
+
+import com.lcl.yupicture.infrastructure.common.BaseResponse;
+import com.lcl.yupicture.infrastructure.common.ResultUtils;
+import com.lcl.yupicture.domain.space.entity.Space;
+import com.lcl.yupicture.domain.user.entity.User;
+import com.lcl.yupicture.application.service.SpaceAnalyzeApplicationService;
+import com.lcl.yupicture.application.service.UserApplicationService;
+import com.lcl.yupicture.interfaces.dto.space.analyze.*;
+import com.lcl.yupicture.interfaces.vo.space.analyze.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+
+@Api(tags = "空间分析接口")
+@RestController
+@RequestMapping("/space/analyze")
+public class SpaceAnalyzeController {
+
+    @Resource
+    private SpaceAnalyzeApplicationService spaceAnalyzeApplicationService;
+
+    @Resource
+    private UserApplicationService userApplicationService;
+
+    /**
+     * 获取空间使用状态
+     */
+    @ApiOperation("获取空间使用状态")
+    @PostMapping("/usage")
+    public BaseResponse<SpaceUsageAnalyzeResponse> getSpaceUsageAnalyze(@RequestBody SpaceUsageAnalyzeRequest spaceUsageAnalyzeRequest,
+                                                                        HttpServletRequest request) {
+        User loginUser = userApplicationService.getLoginUser(request);
+        SpaceUsageAnalyzeResponse spaceUsageAnalyze = spaceAnalyzeApplicationService.getSpaceUsageAnalyze(spaceUsageAnalyzeRequest, loginUser);
+        return ResultUtils.success(spaceUsageAnalyze);
+    }
+
+    /**
+     * 获取空间分类使用状态
+     */
+    @ApiOperation("获取空间分类使用状态")
+    @PostMapping("/category")
+    public BaseResponse<Object> getSpaceCategoryAnalyze(@RequestBody SpaceCategoryAnalyzeRequest spaceCategoryAnalyzeRequest,
+                                                        HttpServletRequest request) {
+        User loginUser = userApplicationService.getLoginUser(request);
+        List<SpaceCategoryAnalyzeResponse> responseList = spaceAnalyzeApplicationService.getSpaceCategoryAnalyze(spaceCategoryAnalyzeRequest, loginUser);
+        return ResultUtils.success(responseList);
+    }
+
+    /**
+     * 获取空间标签使用状态
+     */
+    @ApiOperation("获取空间标签使用状态")
+    @PostMapping("/tag")
+    public BaseResponse<List<SpaceTagAnalyzeResponse>> getSpaceTagAnalyze(@RequestBody SpaceTagAnalyzeRequest spaceTagAnalyzeRequest,
+                                                                          HttpServletRequest request) {
+        User loginUser = userApplicationService.getLoginUser(request);
+        List<SpaceTagAnalyzeResponse> responseList = spaceAnalyzeApplicationService.getSpaceTagAnalyze(spaceTagAnalyzeRequest, loginUser);
+        return ResultUtils.success(responseList);
+    }
+
+    /**
+     * 获取空间大小使用状态
+     */
+    @ApiOperation("获取空间大小使用状态")
+    @PostMapping("/size")
+    public BaseResponse<List<SpaceSizeAnalyzeResponse>> getSpaceSizeAnalyze(@RequestBody SpaceSizeAnalyzeRequest spaceSizeAnalyzeRequest,
+                                                                            HttpServletRequest request) {
+        User loginUser = userApplicationService.getLoginUser(request);
+        List<SpaceSizeAnalyzeResponse> resultList = spaceAnalyzeApplicationService.getSpaceSizeAnalyze(spaceSizeAnalyzeRequest, loginUser);
+        return ResultUtils.success(resultList);
+    }
+
+    /**
+     * 获取空间用户使用状态
+     */
+    @PostMapping("/user")
+    public BaseResponse<List<SpaceUserAnalyzeResponse>> getSpaceUserAnalyze(@RequestBody SpaceUserAnalyzeRequest spaceUserAnalyzeRequest, HttpServletRequest request) {
+        User loginUser = userApplicationService.getLoginUser(request);
+        List<SpaceUserAnalyzeResponse> resultList = spaceAnalyzeApplicationService.getSpaceUserAnalyze(spaceUserAnalyzeRequest, loginUser);
+        return ResultUtils.success(resultList);
+    }
+
+    /**
+     * 获取空间排行使用状态
+     */
+    @ApiOperation("获取空间排行使用状态")
+    @PostMapping("/rank")
+    public BaseResponse<List<Space>> getSpaceRankAnalyze(@RequestBody SpaceRankAnalyzeRequest spaceRankAnalyzeRequest, HttpServletRequest request) {
+        User loginUser = userApplicationService.getLoginUser(request);
+        List<Space> resultList = spaceAnalyzeApplicationService.getSpaceRankAnalyze(spaceRankAnalyzeRequest, loginUser);
+        return ResultUtils.success(resultList);
+    }
+
+
+}

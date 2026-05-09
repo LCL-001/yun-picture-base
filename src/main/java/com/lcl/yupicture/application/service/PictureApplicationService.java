@@ -1,0 +1,162 @@
+package com.lcl.yupicture.application.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lcl.yupicture.infrastructure.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.lcl.yupicture.infrastructure.common.DeleteRequest;
+import com.lcl.yupicture.domain.picture.entity.Picture;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.lcl.yupicture.domain.user.entity.User;
+import com.lcl.yupicture.interfaces.vo.picture.PictureVO;
+import com.lcl.yupicture.interfaces.dto.picture.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+
+/**
+ * <p>
+ * 图片 服务类
+ * </p>
+ *
+ * @author author
+ * @since 2026-04-18
+ */
+public interface PictureApplicationService extends IService<Picture> {
+
+    /**
+     * 上传图片
+     *
+     * @param inputSource  文件
+     * @param pictureUploadRequest 上传图片请求
+     * @param loginUser 登录用户
+     * @return 上传图片结果
+     */
+    PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser);
+
+    /**
+     * 批量上传图片
+     *
+     * @param pictureUploadByBatchRequest 批量上传图片请求
+     * @param loginUser                   登录用户
+     * @return 批量上传图片结果
+     */
+    int uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
+
+    /**
+     * 获取查询条件
+     *
+     * @param pictureQueryRequest 查询条件
+     * @return 查询条件
+     */
+    QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
+
+    /**
+     * 获取图片封装类
+     *
+     * @param picture 图片
+     * @param request 请求
+     * @return 图片封装类
+     */
+    PictureVO getPictureVO(Picture picture, HttpServletRequest request);
+
+    /**
+     * 获取图片分页封装类
+     *
+     * @param picturePage 图片分页
+     * @param request 请求
+     * @return 图片分页封装类
+     */
+    Page<PictureVO> getPictureVOPage(Page<Picture> picturePage, HttpServletRequest request);
+
+    /**
+     * 验证图片
+     *
+     * @param picture 图片
+     */
+    void validPicture(Picture picture);
+
+    /**
+     * 图片审核
+     *
+     * @param pictureReviewRequest 图片审核请求
+     * @param loginUser 登录用户
+     */
+    void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
+
+    /**
+     * 填充审核参数
+     *
+     * @param picture 图片
+     * @param loginUser 登录用户
+     */
+    void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 获取图片分页封装类（缓存）
+     *
+     * @param pictureQueryRequest 查询条件
+     * @param request 请求
+     * @return 图片分页封装类
+     */
+    Page<PictureVO> listPictureVOByPageByCache(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
+
+    /**
+     * 删除图片
+     *
+     * @param deleteRequest 删除请求
+     * @param request 请求
+     */
+    void deletePicture(DeleteRequest deleteRequest, HttpServletRequest request);
+
+    /**
+     * 更新图片
+     *
+     * @param pictureUpdateRequest 更新请求
+     * @param request 请求
+     */
+    void updatePicture(PictureUpdateRequest pictureUpdateRequest, HttpServletRequest request);
+
+    /**
+     * 编辑图片
+     *
+     * @param pictureEditRequest 编辑请求
+     * @param request 请求
+     */
+    void editPicture(PictureEditRequest pictureEditRequest, HttpServletRequest request);
+
+    /**
+     * 获取图片分页封装类（不缓存）
+     *
+     * @param pictureQueryRequest 查询条件
+     * @param request 请求
+     * @return 图片分页封装类
+     */
+    Page<Picture> listPictureVOByPage(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
+
+    /**
+     * 根据颜色搜索图片
+     *
+     * @param spaceId 空间id
+     * @param picColor 图片颜色
+     * @param loginUser 登录用户
+     * @return 图片封装类
+     */
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+
+    /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchRequest 批量编辑图片请求
+     * @param loginUser                 登录用户
+     */
+    void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+    /**
+     * 创建图片扩展任务
+     *
+     * @param createPictureOutPaintingTaskRequest 创建图片扩展任务请求
+     * @param loginUser                           登录用户
+     * @return 创建外画任务结果
+     */
+    CreateOutPaintingTaskResponse createOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
+}

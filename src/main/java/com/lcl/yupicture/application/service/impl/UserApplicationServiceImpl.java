@@ -1,41 +1,28 @@
 package com.lcl.yupicture.application.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.ObjUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lcl.yupicture.domain.user.service.UserDomainService;
 import com.lcl.yupicture.infrastructure.common.BaseResponse;
 import com.lcl.yupicture.infrastructure.common.DeleteRequest;
-import com.lcl.yupicture.infrastructure.common.ResultUtils;
 import com.lcl.yupicture.interfaces.dto.user.UserLoginRequest;
 import com.lcl.yupicture.interfaces.dto.user.UserQueryRequest;
 import com.lcl.yupicture.interfaces.dto.user.UserRegisterRequest;
 import com.lcl.yupicture.domain.user.entity.User;
 import com.lcl.yupicture.interfaces.vo.user.LoginUserVO;
 import com.lcl.yupicture.interfaces.vo.user.UserVO;
-import com.lcl.yupicture.domain.user.valueobject.UserRoleEnum;
 import com.lcl.yupicture.infrastructure.exception.BusinessException;
 import com.lcl.yupicture.infrastructure.exception.ErrorCode;
 import com.lcl.yupicture.infrastructure.exception.ThrowUtils;
-import com.lcl.yunpicturebackend.manager.auth.StpKit;
 import com.lcl.yupicture.infrastructure.mapper.UserMapper;
 import com.lcl.yupicture.application.service.UserApplicationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import static com.lcl.yupicture.domain.user.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * <p>

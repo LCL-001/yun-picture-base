@@ -9,7 +9,7 @@ server:
 
 spring:
   application:
-    name: yun-picture-backend
+    name: yu-picture
   # Redis 配置
   redis:
     database: 1
@@ -54,7 +54,7 @@ spring:
             type: CLASS_BASED
             props:
               strategy: standard
-              algorithmClassName: com.lcl.yunpicturebackend.manager.sharding.PictureShardingAlgorithm
+              algorithmClassName: com.lcl.yupicture.infrastructure.shared.sharding.PictureShardingAlgorithm
     props:
       sql-show: true
 mybatis-plus:
@@ -78,4 +78,4 @@ knife4j:
         group-name: default
         api-rule: package
         api-rule-resources:
-          - com.lcl.yunpicturebackend.controller
+          - com.lcl.yupicture.interfaces.controller
