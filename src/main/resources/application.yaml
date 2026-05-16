@@ -10,6 +10,8 @@ server:
 spring:
   application:
     name: yun-picture-backend
+  profiles:
+    active: local
   # Redis 配置
   redis:
     database: 1

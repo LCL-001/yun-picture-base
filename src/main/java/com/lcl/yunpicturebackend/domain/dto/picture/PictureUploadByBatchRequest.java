@@ -22,6 +22,11 @@ public class PictureUploadByBatchRequest implements Serializable {
     private Integer count = 10;
 
     /**
+     * 抓取图片偏移量
+     */
+    private Integer offset = 0;
+
+    /**
      * 图片名称前缀
      */
     private String namePrefix;
