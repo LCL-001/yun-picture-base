@@ -18,8 +18,10 @@ import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.mapper.PostMapper;
 import com.lcl.yunpicturebackend.service.IPostService;
+import com.lcl.yunpicturebackend.service.ISocialService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,9 @@ import java.util.stream.Collectors;
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IPostService {
 
     private final IUserService userService;
+
+    @Lazy
+    private final ISocialService socialService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -49,6 +54,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         post.setViewCount(0);
         post.setStatus(0);
         this.save(post);
+        socialService.pushToFollowersTimeline(userId, post.getId());
         return post.getId();
     }
 

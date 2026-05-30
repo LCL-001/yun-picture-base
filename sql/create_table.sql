@@ -176,3 +176,18 @@ create table if not exists user_follow
     INDEX idx_followerId (followerId),
     INDEX idx_followeeId (followeeId)
 ) comment '用户关注' collate = utf8mb4_unicode_ci;
+
+-- 用户通知表
+create table if not exists user_notification
+(
+    id         bigint auto_increment comment 'id' primary key,
+    userId     bigint                             not null comment '接收通知的用户 id',
+    fromUserId bigint                             null comment '触发通知的用户 id',
+    type       varchar(32)                        not null comment '通知类型：LIKE/COMMENT/FOLLOW',
+    targetId   bigint                             null comment '关联内容 id',
+    summary    varchar(256)                       null comment '通知内容摘要',
+    isRead     tinyint  default 0                 not null comment '是否已读',
+    createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    INDEX idx_userId (userId),
+    INDEX idx_createTime (createTime)
+) comment '用户通知' collate = utf8mb4_unicode_ci;
