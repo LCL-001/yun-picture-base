@@ -74,10 +74,12 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         Map<Long, List<PostComment>> childMap = children.stream()
                 .collect(Collectors.groupingBy(PostComment::getParentId));
 
-        Map<Long, UserVO> userMap = new HashMap<>();
+        final Map<Long, UserVO> userMap;
         if (!userIds.isEmpty()) {
             List<User> users = userService.listByIds(userIds);
             userMap = users.stream().collect(Collectors.toMap(User::getId, userService::getUserVO, (a, b) -> a));
+        } else {
+            userMap = new HashMap<>();
         }
 
         return topComments.stream().map(parent -> {
