@@ -26,8 +26,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.TimeUnit;
-
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -114,7 +112,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
             if (Boolean.FALSE.equals(stringRedisTemplate.hasKey(key))) {
                 post.setViewCount((post.getViewCount() == null ? 0 : post.getViewCount()) + 1);
                 this.updateById(post);
-                stringRedisTemplate.opsForValue().set(key, "1", 24, TimeUnit.HOURS);
+                stringRedisTemplate.opsForValue().set(key, "1");
             }
         } catch (Exception ignored) {
             // 未登录用户正常计数
