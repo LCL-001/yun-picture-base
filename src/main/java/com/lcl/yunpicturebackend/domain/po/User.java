@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.*;
 
 import java.time.LocalDateTime;
 import java.io.Serializable;
+import java.util.Date;
+
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -51,13 +53,13 @@ public class User implements Serializable {
     private String userRole;
 
     @ApiModelProperty(value = "编辑时间")
-    private LocalDateTime editTime;
+    private Date editTime;
 
     @ApiModelProperty(value = "创建时间")
-    private LocalDateTime createTime;
+    private Date createTime;
 
     @ApiModelProperty(value = "更新时间")
-    private LocalDateTime updateTime;
+    private Date updateTime;
 
     @ApiModelProperty(value = "是否删除")
     @TableLogic

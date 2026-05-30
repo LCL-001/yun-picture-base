@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 用户信息（脱敏）
@@ -37,12 +38,12 @@ public class LoginUserVO implements Serializable {
     private String userRole;
 
     @ApiModelProperty(value = "编辑时间")
-    private LocalDateTime editTime;
+    private Date editTime;
 
     @ApiModelProperty(value = "创建时间")
-    private LocalDateTime createTime;
+    private Date createTime;
 
     @ApiModelProperty(value = "更新时间")
-    private LocalDateTime updateTime;
+    private Date updateTime;
 
 }
