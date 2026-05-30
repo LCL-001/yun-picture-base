@@ -3,6 +3,7 @@ package com.lcl.yunpicturebackend.controller;
 import com.lcl.yunpicturebackend.annotation.AuthCheck;
 import com.lcl.yunpicturebackend.common.BaseResponse;
 import com.lcl.yunpicturebackend.common.ResultUtils;
+import com.lcl.yunpicturebackend.config.CosClientConfig;
 import com.lcl.yunpicturebackend.constant.UserConstant;
 import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
@@ -20,6 +21,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 @Api(tags = "文件相关接口")
 @RestController
@@ -29,6 +31,36 @@ public class FileController {
     @Resource
     private CosManager cosManager;
 
+    @Resource
+    private CosClientConfig cosClientConfig;
+
+    /**
+     * 文件上传（通用接口，登录即可使用）
+     */
+    @ApiOperation("文件上传")
+    @PostMapping("/upload")
+    public BaseResponse<String> uploadFile(@RequestPart("file") MultipartFile multipartFile) {
+        String originalFilename = multipartFile.getOriginalFilename();
+        if (originalFilename == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件名不能为空");
+        }
+        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String key = String.format("/avatar/%s%s", UUID.randomUUID(), suffix);
+        File file = null;
+        try {
+            file = File.createTempFile(key, null);
+            multipartFile.transferTo(file);
+            cosManager.putObject(key, file);
+            return ResultUtils.success(cosClientConfig.getHost() + key);
+        } catch (Exception e) {
+            log.error("file upload error, filepath = " + key, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+        } finally {
+            if (file != null) {
+                file.delete();
+            }
+        }
+    }
 
     /**
      * 测试文件上传
