@@ -40,7 +40,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     @Lazy
     private final ISocialService socialService;
 
-    private static final String POST_VIEW_KEY = "post:view:";
+    private static final String POST_VIEW_USERS_KEY = "post:view:users:";
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -108,11 +108,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         ThrowUtils.throwIf(post == null || post.getStatus() != 0, ErrorCode.NOT_FOUND_ERROR, "帖子不存在");
         try {
             User loginUser = userService.getLoginUser(request);
-            String key = POST_VIEW_KEY + id + ":" + loginUser.getId();
-            if (Boolean.FALSE.equals(stringRedisTemplate.hasKey(key))) {
+            String key = POST_VIEW_USERS_KEY + id;
+            Long added = stringRedisTemplate.opsForSet().add(key, String.valueOf(loginUser.getId()));
+            if (added != null && added > 0) {
                 post.setViewCount((post.getViewCount() == null ? 0 : post.getViewCount()) + 1);
                 this.updateById(post);
-                stringRedisTemplate.opsForValue().set(key, "1");
             }
         } catch (Exception ignored) {
             // 未登录用户正常计数
