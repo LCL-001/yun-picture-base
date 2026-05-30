@@ -114,3 +114,23 @@ create table if not exists space_user
     INDEX idx_spaceId (spaceId),                    -- 提升按空间查询的性能
     INDEX idx_userId (userId)                       -- 提升按用户查询的性能
 ) comment '空间用户关联' collate = utf8mb4_unicode_ci;
+
+-- 论坛帖子表
+create table if not exists post
+(
+    id           bigint auto_increment comment 'id' primary key,
+    userId       bigint                             not null comment '作者 id',
+    title        varchar(255)                       not null comment '标题',
+    content      text                               not null comment '正文内容',
+    images       varchar(2048)                      null comment '图片列表，逗号分隔，最多9张',
+    tags         varchar(512)                       null comment '标签，逗号分隔',
+    likeCount    int       default 0                not null comment '点赞数',
+    commentCount int       default 0                not null comment '评论数',
+    viewCount    int       default 0                not null comment '浏览数',
+    status       tinyint   default 0                not null comment '状态：0-正常 1-隐藏',
+    createTime   datetime  default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime   datetime  default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete     tinyint   default 0                not null comment '是否删除',
+    INDEX idx_userId (userId),
+    INDEX idx_createTime (createTime)
+) comment '论坛帖子' collate = utf8mb4_unicode_ci;
