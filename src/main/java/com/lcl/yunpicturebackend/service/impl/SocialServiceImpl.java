@@ -11,6 +11,7 @@ import com.lcl.yunpicturebackend.service.ISocialService;
 import com.lcl.yunpicturebackend.service.IUserFollowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,10 @@ public class SocialServiceImpl implements ISocialService {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final IUserFollowService userFollowService;
+
+    @Lazy
     private final IPostService postService;
+
     private final UserNotificationMapper notificationMapper;
 
     private static final String TIMELINE_KEY = "user:timeline:";
