@@ -22,8 +22,11 @@ import com.lcl.yunpicturebackend.service.ISocialService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
@@ -34,9 +37,12 @@ import java.util.stream.Collectors;
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IPostService {
 
     private final IUserService userService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Lazy
     private final ISocialService socialService;
+
+    private static final String POST_VIEW_KEY = "post:view:";
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -102,9 +108,19 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     public PostVO getPostVOById(Long id, HttpServletRequest request) {
         Post post = this.getById(id);
         ThrowUtils.throwIf(post == null || post.getStatus() != 0, ErrorCode.NOT_FOUND_ERROR, "帖子不存在");
-        // 增加浏览量
-        post.setViewCount((post.getViewCount() == null ? 0 : post.getViewCount()) + 1);
-        this.updateById(post);
+        try {
+            User loginUser = userService.getLoginUser(request);
+            String key = POST_VIEW_KEY + id + ":" + loginUser.getId();
+            if (Boolean.FALSE.equals(stringRedisTemplate.hasKey(key))) {
+                post.setViewCount((post.getViewCount() == null ? 0 : post.getViewCount()) + 1);
+                this.updateById(post);
+                stringRedisTemplate.opsForValue().set(key, "1", 24, TimeUnit.HOURS);
+            }
+        } catch (Exception ignored) {
+            // 未登录用户正常计数
+            post.setViewCount((post.getViewCount() == null ? 0 : post.getViewCount()) + 1);
+            this.updateById(post);
+        }
         return getPostVO(post, request);
     }
 
