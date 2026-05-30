@@ -134,3 +134,45 @@ create table if not exists post
     INDEX idx_userId (userId),
     INDEX idx_createTime (createTime)
 ) comment '论坛帖子' collate = utf8mb4_unicode_ci;
+
+-- 帖子点赞表
+create table if not exists post_like
+(
+    id         bigint auto_increment comment 'id' primary key,
+    postId     bigint                             not null comment '帖子 id',
+    userId     bigint                             not null comment '用户 id',
+    createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    UNIQUE KEY uk_postId_userId (postId, userId),
+    INDEX idx_postId (postId),
+    INDEX idx_userId (userId)
+) comment '帖子点赞' collate = utf8mb4_unicode_ci;
+
+-- 帖子评论表
+create table if not exists post_comment
+(
+    id             bigint auto_increment comment 'id' primary key,
+    userId         bigint                             not null comment '评论用户 id',
+    postId         bigint                             not null comment '帖子 id',
+    parentId       bigint   default 0                 not null comment '父评论 id，0=一级评论',
+    replyToUserId  bigint                             null comment '被回复的用户 id',
+    content        varchar(500)                       not null comment '评论内容',
+    likeCount      int      default 0                 not null comment '点赞数',
+    status         tinyint  default 0                 not null comment '状态：0-正常',
+    createTime     datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    isDelete       tinyint  default 0                 not null comment '是否删除',
+    INDEX idx_postId (postId),
+    INDEX idx_parentId (parentId),
+    INDEX idx_userId (userId)
+) comment '帖子评论' collate = utf8mb4_unicode_ci;
+
+-- 用户关注表
+create table if not exists user_follow
+(
+    id         bigint auto_increment comment 'id' primary key,
+    followerId bigint                             not null comment '关注者 id',
+    followeeId bigint                             not null comment '被关注者 id',
+    createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    UNIQUE KEY uk_follower_followee (followerId, followeeId),
+    INDEX idx_followerId (followerId),
+    INDEX idx_followeeId (followeeId)
+) comment '用户关注' collate = utf8mb4_unicode_ci;
