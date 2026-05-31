@@ -70,4 +70,12 @@ public class SocialController {
         socialService.deleteNotification(id, loginUser.getId());
         return ResultUtils.success(true);
     }
+
+    @ApiOperation("清空所有通知")
+    @PostMapping("/notification/clear")
+    public BaseResponse<Boolean> clearNotifications(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        socialService.clearNotifications(loginUser.getId());
+        return ResultUtils.success(true);
+    }
 }
