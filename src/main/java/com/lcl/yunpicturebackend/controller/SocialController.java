@@ -78,4 +78,12 @@ public class SocialController {
         socialService.clearNotifications(loginUser.getId());
         return ResultUtils.success(true);
     }
+
+    @ApiOperation("清除未读标记")
+    @PostMapping("/notification/clear-unread")
+    public BaseResponse<Boolean> clearUnread(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        socialService.clearUnread(loginUser.getId());
+        return ResultUtils.success(true);
+    }
 }

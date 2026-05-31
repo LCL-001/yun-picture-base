@@ -138,6 +138,11 @@ public class SocialServiceImpl implements ISocialService {
     }
 
     @Override
+    public void clearUnread(Long userId) {
+        stringRedisTemplate.delete(UNREAD_COUNT_KEY + userId);
+    }
+
+    @Override
     public void clearNotifications(Long userId) {
         LambdaQueryWrapper<UserNotification> w = new LambdaQueryWrapper<>();
         w.eq(UserNotification::getUserId, userId);

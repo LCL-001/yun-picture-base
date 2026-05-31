@@ -21,4 +21,6 @@ public interface ISocialService {
     void deleteNotification(Long notificationId, Long userId);
 
     void clearNotifications(Long userId);
+
+    void clearUnread(Long userId);
 }
