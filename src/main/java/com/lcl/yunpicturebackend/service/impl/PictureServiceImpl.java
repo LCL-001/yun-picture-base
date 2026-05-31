@@ -27,6 +27,7 @@ import com.lcl.yunpicturebackend.enums.PictureReviewStatusEnum;
 import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yunpicturebackend.config.CosClientConfig;
 import com.lcl.yunpicturebackend.manager.CosManager;
 import com.lcl.yunpicturebackend.manager.auth.StpKit;
 import com.lcl.yunpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
@@ -94,6 +95,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     private final TransactionTemplate transactionTemplate;
 
     private final CosManager cosManager;
+
+    private final CosClientConfig cosClientConfig;
 
     private final AliYunAiApi aliYunAiApi;
 
@@ -768,12 +771,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         if (count > 1) {
             return;
         }
-        // FIXME 注意，这里的 url 包含了域名，实际上只要传 key 值（存储路径）就够了
-        cosManager.deleteObject(oldPicture.getUrl());
+        // 从完整 URL 中提取 key（去掉域名前缀）
+        String host = cosClientConfig.getHost();
+        String url = oldPicture.getUrl();
+        if (StrUtil.isNotBlank(url) && url.startsWith(host)) {
+            cosManager.deleteObject(url.substring(host.length()));
+        }
         // 清理缩略图
         String thumbnailUrl = oldPicture.getThumbnailUrl();
-        if (StrUtil.isNotBlank(thumbnailUrl)) {
-            cosManager.deleteObject(thumbnailUrl);
+        if (StrUtil.isNotBlank(thumbnailUrl) && thumbnailUrl.startsWith(host)) {
+            cosManager.deleteObject(thumbnailUrl.substring(host.length()));
         }
     }
 
