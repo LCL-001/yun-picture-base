@@ -115,5 +115,10 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         if (comment == null || !comment.getUserId().equals(userId))
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         this.removeById(commentId);
+        Post post = postService.getById(comment.getPostId());
+        if (post != null) {
+            post.setCommentCount(Math.max(0, (post.getCommentCount() == null ? 0 : post.getCommentCount()) - 1));
+            postService.updateById(post);
+        }
     }
 }
