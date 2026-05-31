@@ -6,6 +6,7 @@ import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.service.IUserFollowService;
+import com.lcl.yunpicturebackend.service.ISocialService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -29,6 +30,9 @@ public class UserFollowController {
     @Resource
     private IUserService userService;
 
+    @Resource
+    private ISocialService socialService;
+
     @Data
     static class FollowRequest implements Serializable {
         private Long followeeId;
@@ -40,7 +44,11 @@ public class UserFollowController {
     public BaseResponse<Boolean> toggleFollow(@RequestBody FollowRequest req, HttpServletRequest request) {
         ThrowUtils.throwIf(req == null || req.getFolloweeId() == null, ErrorCode.PARAMS_ERROR);
         User u = userService.getLoginUser(request);
-        return ResultUtils.success(userFollowService.toggleFollow(u.getId(), req.getFolloweeId()));
+        boolean following = userFollowService.toggleFollow(u.getId(), req.getFolloweeId());
+        if (following) {
+            socialService.sendNotification(req.getFolloweeId(), u.getId(), "FOLLOW", null, u.getUserName() + " 关注了你");
+        }
+        return ResultUtils.success(following);
     }
 
     @ApiOperation("关注状态")

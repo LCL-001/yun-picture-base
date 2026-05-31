@@ -5,9 +5,8 @@ import com.lcl.yunpicturebackend.common.ResultUtils;
 import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
-import com.lcl.yunpicturebackend.service.IPostCommentService;
-import com.lcl.yunpicturebackend.service.IPostLikeService;
-import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yunpicturebackend.domain.po.Post;
+import com.lcl.yunpicturebackend.service.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.Data;
@@ -35,6 +34,12 @@ public class PostInteractionController {
     @Resource
     private IUserService userService;
 
+    @Resource
+    private IPostService postService;
+
+    @Resource
+    private ISocialService socialService;
+
     // ========= 点赞 =========
 
     @Data
@@ -48,7 +53,15 @@ public class PostInteractionController {
     public BaseResponse<Boolean> toggleLike(@RequestBody LikeRequest req, HttpServletRequest request) {
         ThrowUtils.throwIf(req == null || req.getPostId() == null, ErrorCode.PARAMS_ERROR);
         User u = userService.getLoginUser(request);
-        return ResultUtils.success(postLikeService.toggleLike(req.getPostId(), u.getId()));
+        boolean liked = postLikeService.toggleLike(req.getPostId(), u.getId());
+        // 点赞时通知帖子作者
+        if (liked) {
+            Post post = postService.getById(req.getPostId());
+            if (post != null && !post.getUserId().equals(u.getId())) {
+                socialService.sendNotification(post.getUserId(), u.getId(), "LIKE", req.getPostId(), u.getUserName() + " 赞了你的帖子");
+            }
+        }
+        return ResultUtils.success(liked);
     }
 
     @ApiOperation("点赞数")
@@ -82,6 +95,15 @@ public class PostInteractionController {
         User u = userService.getLoginUser(request);
         long id = postCommentService.addComment(req.getPostId(), u.getId(),
                 req.getParentId(), req.getReplyToUserId(), req.getContent());
+        // 通知帖子作者（一级评论）或被回复用户（子回复）
+        if (req.getParentId() == null || req.getParentId() == 0) {
+            Post post = postService.getById(req.getPostId());
+            if (post != null && !post.getUserId().equals(u.getId())) {
+                socialService.sendNotification(post.getUserId(), u.getId(), "COMMENT", req.getPostId(), u.getUserName() + " 评论了你的帖子");
+            }
+        } else if (req.getReplyToUserId() != null && !req.getReplyToUserId().equals(u.getId())) {
+            socialService.sendNotification(req.getReplyToUserId(), u.getId(), "REPLY", req.getPostId(), u.getUserName() + " 回复了你的评论");
+        }
         return ResultUtils.success(id);
     }
 
