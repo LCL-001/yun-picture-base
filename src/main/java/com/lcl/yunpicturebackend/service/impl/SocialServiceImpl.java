@@ -138,6 +138,21 @@ public class SocialServiceImpl implements ISocialService {
     }
 
     @Override
+    public void deleteNotification(Long notificationId, Long userId) {
+        UserNotification n = notificationMapper.selectById(notificationId);
+        if (n != null && n.getUserId().equals(userId)) {
+            notificationMapper.deleteById(notificationId);
+            if (n.getIsRead() == 0) {
+                String c = stringRedisTemplate.opsForValue().get(UNREAD_COUNT_KEY + userId);
+                if (c != null) {
+                    long v = Long.parseLong(c) - 1;
+                    stringRedisTemplate.opsForValue().set(UNREAD_COUNT_KEY + userId, String.valueOf(Math.max(0, v)));
+                }
+            }
+        }
+    }
+
+    @Override
     public void markAsRead(Long notificationId, Long userId) {
         UserNotification n = notificationMapper.selectById(notificationId);
         if (n != null && n.getUserId().equals(userId)) {

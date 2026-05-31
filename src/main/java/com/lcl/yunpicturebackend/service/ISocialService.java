@@ -17,4 +17,6 @@ public interface ISocialService {
     long getUnreadCount(Long userId);
 
     void markAsRead(Long notificationId, Long userId);
+
+    void deleteNotification(Long notificationId, Long userId);
 }

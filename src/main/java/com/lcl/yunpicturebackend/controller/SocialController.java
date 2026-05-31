@@ -62,4 +62,12 @@ public class SocialController {
         socialService.markAsRead(id, loginUser.getId());
         return ResultUtils.success(true);
     }
+
+    @ApiOperation("删除通知")
+    @PostMapping("/notification/delete/{id}")
+    public BaseResponse<Boolean> deleteNotification(@PathVariable Long id, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        socialService.deleteNotification(id, loginUser.getId());
+        return ResultUtils.success(true);
+    }
 }
