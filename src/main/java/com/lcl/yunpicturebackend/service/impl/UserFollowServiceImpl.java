@@ -1,23 +1,31 @@
 package com.lcl.yunpicturebackend.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.domain.po.UserFollow;
+import com.lcl.yunpicturebackend.domain.vo.UserVO;
 import com.lcl.yunpicturebackend.exception.BusinessException;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.mapper.UserFollowMapper;
 import com.lcl.yunpicturebackend.service.IUserFollowService;
+import com.lcl.yunpicturebackend.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFollow> implements IUserFollowService {
 
     private final StringRedisTemplate stringRedisTemplate;
+    private final IUserService userService;
 
     private static final String FOLLOWING_KEY = "user:following:";
     private static final String FOLLOWING_COUNT_KEY = "user:following:count:";
@@ -70,5 +78,23 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
     public boolean isFollowing(Long followerId, Long followeeId) {
         if (ObjectUtil.hasEmpty(followerId, followeeId)) return false;
         return Boolean.TRUE.equals(stringRedisTemplate.opsForSet().isMember(FOLLOWING_KEY + followerId, String.valueOf(followeeId)));
+    }
+
+    @Override
+    public List<UserVO> listFollowing(Long userId) {
+        List<UserFollow> follows = this.list(
+                new LambdaQueryWrapper<UserFollow>().eq(UserFollow::getFollowerId, userId)
+                        .orderByDesc(UserFollow::getCreateTime));
+        if (CollUtil.isEmpty(follows)) return Collections.emptyList();
+        List<Long> followeeIds = follows.stream().map(UserFollow::getFolloweeId).collect(Collectors.toList());
+        List<User> users = userService.listByIds(followeeIds);
+        Map<Long, User> userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
+        return followeeIds.stream()
+                .map(id -> {
+                    User u = userMap.get(id);
+                    return u != null ? userService.getUserVO(u) : null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 }

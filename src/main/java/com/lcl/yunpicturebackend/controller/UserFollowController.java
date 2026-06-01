@@ -5,6 +5,7 @@ import com.lcl.yunpicturebackend.common.ResultUtils;
 import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.exception.ErrorCode;
 import com.lcl.yunpicturebackend.exception.ThrowUtils;
+import com.lcl.yunpicturebackend.domain.vo.UserVO;
 import com.lcl.yunpicturebackend.service.IUserFollowService;
 import com.lcl.yunpicturebackend.service.ISocialService;
 import com.lcl.yunpicturebackend.service.IUserService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
+import java.util.List;
 
 @Api(tags = "用户关注接口")
 @RestController
@@ -68,5 +70,12 @@ public class UserFollowController {
     @GetMapping("/follower/count/{userId}")
     public BaseResponse<Long> followerCount(@PathVariable Long userId) {
         return ResultUtils.success(userFollowService.getFollowerCount(userId));
+    }
+
+    @ApiOperation("关注列表")
+    @GetMapping("/following/list")
+    public BaseResponse<List<UserVO>> followingList(HttpServletRequest request) {
+        User u = userService.getLoginUser(request);
+        return ResultUtils.success(userFollowService.listFollowing(u.getId()));
     }
 }
