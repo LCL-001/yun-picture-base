@@ -34,6 +34,7 @@ public class SocialServiceImpl implements ISocialService {
 
     private static final String TIMELINE_KEY = "user:timeline:";
     private static final String UNREAD_COUNT_KEY = "user:unread:";
+    private static final String LIKE_USERS_KEY = "post:like:users:";
     private static final int TIMELINE_MAX = 200;
     private static final int FAN_THRESHOLD = 1000;
 
@@ -69,7 +70,7 @@ public class SocialServiceImpl implements ISocialService {
                 Long postId = Long.parseLong(m);
                 Post post = postMapper.selectById(postId);
                 if (post != null && post.getStatus() == 0) {
-                    result.add(toPostVO(post));
+                    result.add(toPostVO(post, userId));
                 }
             }
         }
@@ -87,13 +88,14 @@ public class SocialServiceImpl implements ISocialService {
                         .notIn(CollUtil.isNotEmpty(existingIds), Post::getId, existingIds)
                         .orderByDesc(Post::getCreateTime)
                         .last("LIMIT " + (pageSize - result.size())));
-                supplement.forEach(p -> result.add(toPostVO(p)));
+                supplement.forEach(p -> result.add(toPostVO(p, userId)));
             }
         }
 
         Page<PostVO> page = new Page<>(current, pageSize);
         page.setRecords(result);
-        page.setTotal(result.size());
+        Long total = stringRedisTemplate.opsForZSet().size(key);
+        page.setTotal(total != null ? total : 0);
         return page;
     }
 
@@ -123,7 +125,7 @@ public class SocialServiceImpl implements ISocialService {
         return c != null ? Long.parseLong(c) : 0;
     }
 
-    private PostVO toPostVO(Post post) {
+    private PostVO toPostVO(Post post, Long currentUserId) {
         if (post == null) return null;
         PostVO vo = PostVO.objToVo(post);
         if (StrUtil.isNotBlank(post.getTags())) {
@@ -133,6 +135,10 @@ public class SocialServiceImpl implements ISocialService {
         if (uid != null && uid > 0) {
             User user = userService.getById(uid);
             vo.setUser(userService.getUserVO(user));
+        }
+        if (currentUserId != null) {
+            Boolean liked = stringRedisTemplate.opsForSet().isMember(LIKE_USERS_KEY + post.getId(), String.valueOf(currentUserId));
+            vo.setIsLiked(liked != null && liked);
         }
         return vo;
     }

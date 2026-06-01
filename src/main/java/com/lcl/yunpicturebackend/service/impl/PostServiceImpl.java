@@ -41,6 +41,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     private final ISocialService socialService;
 
     private static final String POST_VIEW_USERS_KEY = "post:view:users:";
+    private static final String LIKE_USERS_KEY = "post:like:users:";
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -75,6 +76,14 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         if (userId != null && userId > 0) {
             User user = userService.getById(userId);
             vo.setUser(userService.getUserVO(user));
+        }
+        // 当前用户是否已点赞
+        try {
+            User loginUser = userService.getLoginUser(request);
+            Boolean liked = stringRedisTemplate.opsForSet().isMember(LIKE_USERS_KEY + post.getId(), String.valueOf(loginUser.getId()));
+            vo.setIsLiked(liked != null && liked);
+        } catch (Exception ignored) {
+            vo.setIsLiked(false);
         }
         return vo;
     }
