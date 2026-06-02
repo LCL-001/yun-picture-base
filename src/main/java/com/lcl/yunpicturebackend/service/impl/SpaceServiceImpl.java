@@ -252,10 +252,20 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
 
     @Override
     public void checkSpaceAuth(Space oldSpace, User loginUser) {
-        // 仅本人或管理员拥有权限
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        // 空间创建者或系统管理员直接放行
+        if (oldSpace.getUserId().equals(loginUser.getId()) || userService.isAdmin(loginUser)) {
+            return;
         }
+        // 团队空间：检查是否为团队管理员
+        if (oldSpace.getSpaceType() != null && oldSpace.getSpaceType() == 1) {
+            SpaceUser spaceUser = spaceUserService.getOne(new QueryWrapper<SpaceUser>()
+                    .eq("spaceId", oldSpace.getId())
+                    .eq("userId", loginUser.getId()));
+            if (spaceUser != null && "admin".equals(spaceUser.getSpaceRole())) {
+                return;
+            }
+        }
+        throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
     }
 
     @Override
