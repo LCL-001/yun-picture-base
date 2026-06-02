@@ -243,9 +243,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可删除
         this.checkSpaceAuth(oldSpace, loginUser);
-        // 操作数据库
+        // 操作数据库：删除空间
         boolean result = removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 清理该空间的所有成员记录
+        spaceUserService.remove(new QueryWrapper<SpaceUser>().eq("spaceId", id));
     }
 
     @Override

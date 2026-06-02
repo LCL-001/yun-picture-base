@@ -165,6 +165,8 @@ public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser
             }
             spaceUserVO.setSpace(SpaceVO.objToVo(space));
         });
+        // 过滤已删除空间的记录
+        spaceUserVOList.removeIf(vo -> vo.getSpace() == null);
         return spaceUserVOList;
     }
 
