@@ -95,6 +95,7 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
             List<Map<String, Object>> childMaps = childList.stream().map(c -> {
                 Map<String, Object> cm = new HashMap<>();
                 cm.put("id", c.getId());
+                cm.put("parentId", c.getParentId());
                 cm.put("userId", c.getUserId());
                 cm.put("content", c.getContent());
                 cm.put("replyToUserId", c.getReplyToUserId());
