@@ -78,7 +78,7 @@
 - 编辑事件广播
 - 连接生命周期管理
 
-## :file_structure: 项目结构
+## 📁 项目结构
 
 ```
 yun-picture-backend/
