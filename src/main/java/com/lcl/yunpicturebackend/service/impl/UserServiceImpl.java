@@ -96,11 +96,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 .eq(User::getUserPassword, encryptPassword)
                 .one();
         ThrowUtils.throwIf(user == null, ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
-        // 3. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+        // 3. 记录用户的登录态（脱敏后会话对象，不存放密码等敏感字段）
+        User sessionUser = new User();
+        BeanUtil.copyProperties(user, sessionUser);
+        sessionUser.setUserPassword(null);
+        request.getSession().setAttribute(USER_LOGIN_STATE, sessionUser);
         // 4. 记录用户登录态到 Sa-token，便于空间鉴权时使用，注意保证该用户信息与 SpringSession 中的信息过期时间一致
         StpKit.SPACE.login(user.getId());
-        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, user);
+        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, sessionUser);
 
         return ResultUtils.success(BeanUtil.copyProperties(user, LoginUserVO.class));
     }
@@ -126,7 +129,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         ThrowUtils.throwIf(currentUser == null || currentUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR);
         // 2. 移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
-        // 3. 返回
+        // 3. 注销 Sa-Token 登录态，保证登出后空间权限立即失效
+        try {
+            StpKit.SPACE.logout();
+        } catch (Exception ignored) {
+            // Sa-Token 中无对应登录态时忽略
+        }
+        // 4. 返回
         return ResultUtils.success(true);
     }
 
