@@ -120,13 +120,14 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
             String key = POST_VIEW_USERS_KEY + id;
             Long added = stringRedisTemplate.opsForSet().add(key, String.valueOf(loginUser.getId()));
             if (added != null && added > 0) {
+                // 原子自增，避免并发读-改-写丢更新
+                this.lambdaUpdate().eq(Post::getId, id).setSql("viewCount = viewCount + 1").update();
                 post.setViewCount((post.getViewCount() == null ? 0 : post.getViewCount()) + 1);
-                this.updateById(post);
             }
         } catch (Exception ignored) {
             // 未登录用户正常计数
+            this.lambdaUpdate().eq(Post::getId, id).setSql("viewCount = viewCount + 1").update();
             post.setViewCount((post.getViewCount() == null ? 0 : post.getViewCount()) + 1);
-            this.updateById(post);
         }
         return getPostVO(post, request);
     }

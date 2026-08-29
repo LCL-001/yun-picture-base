@@ -11,6 +11,7 @@ import com.lcl.yunpicturebackend.mapper.PostLikeMapper;
 import com.lcl.yunpicturebackend.service.IPostLikeService;
 import com.lcl.yunpicturebackend.service.IPostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +43,12 @@ public class PostLikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> i
         PostLike like = new PostLike();
         like.setPostId(postId);
         like.setUserId(userId);
-        this.save(like);
+        try {
+            this.save(like);
+        } catch (DuplicateKeyException e) {
+            // 并发重复点赞：唯一索引兜底，当前状态已是已点赞，幂等返回
+            return true;
+        }
         stringRedisTemplate.opsForSet().add(LIKE_USERS_KEY + postId, String.valueOf(userId));
         stringRedisTemplate.opsForValue().increment(LIKE_COUNT_KEY + postId);
         updatePostLikeCount(postId, 1);
@@ -50,10 +56,17 @@ public class PostLikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> i
     }
 
     private void updatePostLikeCount(Long postId, int delta) {
-        Post post = postService.getById(postId);
-        if (post != null) {
-            post.setLikeCount(Math.max(0, (post.getLikeCount() == null ? 0 : post.getLikeCount()) + delta));
-            postService.updateById(post);
+        // 原子更新计数，避免读-改-写并发丢更新；delta 为固定的 ±1，无注入风险
+        if (delta > 0) {
+            postService.lambdaUpdate()
+                    .eq(Post::getId, postId)
+                    .setSql("likeCount = likeCount + " + delta)
+                    .update();
+        } else if (delta < 0) {
+            postService.lambdaUpdate()
+                    .eq(Post::getId, postId)
+                    .setSql("likeCount = GREATEST(likeCount - " + (-delta) + ", 0)")
+                    .update();
         }
     }
 

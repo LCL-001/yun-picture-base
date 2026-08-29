@@ -200,12 +200,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             boolean result = this.saveOrUpdate(picture);
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
             if (finalSpaceId != null) {
+                // 条件原子更新：并发下也保证额度不超限，条件不满足时影响行数为 0，事务回滚
                 boolean update = spaceService.lambdaUpdate()
                         .eq(Space::getId, finalSpaceId)
+                        .apply("totalSize + {0} <= maxSize", picture.getPicSize())
+                        .apply("totalCount + 1 <= maxCount")
                         .setSql("totalSize = totalSize + " + picture.getPicSize())
                         .setSql("totalCount = totalCount + 1")
                         .update();
-                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "空间额度不足");
             }
             return picture;
         });
@@ -688,13 +691,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             // 操作数据库
             boolean result = this.removeById(pictureId);
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-            // 释放额度
+            // 释放额度（原子更新，防止减到负数）
             Long spaceId = oldPicture.getSpaceId();
             if (spaceId != null) {
                 boolean update = spaceService.lambdaUpdate()
                         .eq(Space::getId, spaceId)
-                        .setSql("totalSize = totalSize - " + oldPicture.getPicSize())
-                        .setSql("totalCount = totalCount - 1")
+                        .setSql("totalSize = GREATEST(totalSize - " + oldPicture.getPicSize() + ", 0)")
+                        .setSql("totalCount = GREATEST(totalCount - 1, 0)")
                         .update();
                 ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
             }

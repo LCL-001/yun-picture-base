@@ -13,6 +13,7 @@ import com.lcl.yunpicturebackend.mapper.UserFollowMapper;
 import com.lcl.yunpicturebackend.service.IUserFollowService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +50,12 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         UserFollow f = new UserFollow();
         f.setFollowerId(followerId);
         f.setFolloweeId(followeeId);
-        this.save(f);
+        try {
+            this.save(f);
+        } catch (DuplicateKeyException e) {
+            // 并发重复关注：唯一索引兜底，当前状态已是已关注，幂等返回
+            return true;
+        }
         stringRedisTemplate.opsForSet().add(FOLLOWING_KEY + followerId, String.valueOf(followeeId));
         stringRedisTemplate.opsForValue().increment(FOLLOWING_COUNT_KEY + followerId);
         stringRedisTemplate.opsForValue().increment(FOLLOWER_COUNT_KEY + followeeId);

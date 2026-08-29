@@ -41,12 +41,11 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         comment.setLikeCount(0);
         comment.setStatus(0);
         this.save(comment);
-        // 更新帖子评论计数
-        Post post = postService.getById(postId);
-        if (post != null) {
-            post.setCommentCount((post.getCommentCount() == null ? 0 : post.getCommentCount()) + 1);
-            postService.updateById(post);
-        }
+        // 更新帖子评论计数（原子自增，避免并发丢更新）
+        postService.lambdaUpdate()
+                .eq(Post::getId, postId)
+                .setSql("commentCount = commentCount + 1")
+                .update();
         return comment.getId();
     }
 
@@ -116,10 +115,10 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         if (comment == null || !comment.getUserId().equals(userId))
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         this.removeById(commentId);
-        Post post = postService.getById(comment.getPostId());
-        if (post != null) {
-            post.setCommentCount(Math.max(0, (post.getCommentCount() == null ? 0 : post.getCommentCount()) - 1));
-            postService.updateById(post);
-        }
+        // 原子递减，防止减到负数
+        postService.lambdaUpdate()
+                .eq(Post::getId, comment.getPostId())
+                .setSql("commentCount = GREATEST(commentCount - 1, 0)")
+                .update();
     }
 }
