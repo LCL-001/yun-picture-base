@@ -90,6 +90,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
      */
     private static final String OUT_PAINTING_OWNER_KEY = "yupicture:outpainting:owner:";
 
+    /**
+     * 图片列表缓存版本号的 Redis key
+     */
+    private static final String PICTURE_LIST_CACHE_VERSION_KEY = "yupicture:listPictureVOByPage:version";
+
     private final IUserService userService;
 
     private final ISpaceService spaceService;
@@ -567,24 +572,25 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         // 普通用户默认只能查看已经过审的图片
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
         // 构建缓存key
-        // 将查询条件中的非关键参数排除，减少缓存Key的种类
-        // 例如：current、pageSize 不应该影响缓存Key
+        // 将查询条件序列化后取 MD5，作为缓存 key 的筛选条件部分
         String hashKey = DigestUtils.md5DigestAsHex(
                 JSONUtil.toJsonStr(buildCacheKey(pictureQueryRequest)).getBytes()
         );
-        String key = String.format("yupicture:listPictureVOByPage:%s", hashKey);
-        // 先从本地缓存 Caffeine 中获取
-        String cachedValue = LOCAL_CACHE.getIfPresent(key);
+        // 先从本地缓存 Caffeine 中获取（本地缓存不携带版本号，依靠 clearPictureListCache 中的 invalidateAll 失效）
+        String cachedValue = LOCAL_CACHE.getIfPresent(hashKey);
         if (StringUtils.isNotBlank(cachedValue)) {
             // 如果命中缓存，返回结果
             Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
             return pictureVOPage;
         }
+        // Redis key 携带版本号：清理缓存时只需将版本号 +1，旧 key 靠 TTL 自然过期
+        long cacheVersion = getListCacheVersion();
+        String key = String.format("yupicture:listPictureVOByPage:%d:%s", cacheVersion, hashKey);
         // 本地缓存中没有，再从分布式缓存（Redis）中获取
         cachedValue = stringRedisTemplate.opsForValue().get(key);
         if (StringUtils.isNotBlank(cachedValue)) {
             // 回写本地缓存
-            LOCAL_CACHE.put(key, cachedValue);
+            LOCAL_CACHE.put(hashKey, cachedValue);
             // 如果命中缓存，返回结果
             Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
             return pictureVOPage;
@@ -599,7 +605,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                 cachedValue = stringRedisTemplate.opsForValue().get(key);
                 if (StringUtils.isNotBlank(cachedValue)) {
                     // 回写本地缓存
-                    LOCAL_CACHE.put(key, cachedValue);
+                    LOCAL_CACHE.put(hashKey, cachedValue);
                     // 如果命中缓存，返回结果
                     Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
                     return pictureVOPage;
@@ -611,7 +617,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                 Page<PictureVO> pictureVOPage = getPictureVOPage(picturePage, request);
                 // 写入本地缓存
                 String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
-                LOCAL_CACHE.put(key, cacheValue);
+                LOCAL_CACHE.put(hashKey, cacheValue);
                 // 写入分布式缓存
                 // 设置过期时间 5 ~ 10 分钟随机过期，防止缓存雪崩
                 int cacheExpireTime;
@@ -637,7 +643,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             // 直接从Redis获取，不再递归
             cachedValue = stringRedisTemplate.opsForValue().get(key);
             if (StringUtils.isNotBlank(cachedValue)) {
-                LOCAL_CACHE.put(key, cachedValue);
+                LOCAL_CACHE.put(hashKey, cachedValue);
                 return JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
             }
             // 如果还是没有，返回空结果或再次尝试（限制最大重试次数）
@@ -672,11 +678,20 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
      * 清空图片列表缓存
      */
     private void clearPictureListCache() {
-        // 清除Redis缓存（使用通配符删除）
-        Set<String> keys = stringRedisTemplate.keys("yupicture:listPictureVOByPage:*");
-        if (keys != null && !keys.isEmpty()) {
-            stringRedisTemplate.delete(keys);
-        }
+        // 版本号 +1 使所有旧版本 key 立即失效，旧 key 靠 TTL 自然过期
+        // 避免使用 KEYS 通配符全库扫描阻塞 Redis
+        stringRedisTemplate.opsForValue().increment(PICTURE_LIST_CACHE_VERSION_KEY);
+        // 本地缓存无法感知分布式版本变化，直接整体失效
+        // 多节点部署时其它节点的本地缓存由 TTL（5~10 分钟）兜底
+        LOCAL_CACHE.invalidateAll();
+    }
+
+    /**
+     * 获取图片列表缓存的当前版本号
+     */
+    private long getListCacheVersion() {
+        String version = stringRedisTemplate.opsForValue().get(PICTURE_LIST_CACHE_VERSION_KEY);
+        return version != null ? Long.parseLong(version) : 0L;
     }
 
     @Override
