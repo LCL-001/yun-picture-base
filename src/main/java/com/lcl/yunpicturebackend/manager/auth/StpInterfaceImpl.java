@@ -133,7 +133,7 @@ public class StpInterfaceImpl implements StpInterface {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "未找到空间信息");
         }
         // 根据 Space 类型判断权限
-        if (space.getSpaceType() == SpaceTypeEnum.PRIVATE.getValue()) {
+        if (Objects.equals(space.getSpaceType(), SpaceTypeEnum.PRIVATE.getValue())) {
             // 私有空间，仅本人或管理员有权限
             if (space.getUserId().equals(userId) || userService.isAdmin(loginUser)) {
                 return ADMIN_PERMISSIONS;

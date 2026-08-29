@@ -142,14 +142,19 @@ public class UserController {
     }
 
     /**
-     * 编辑用户信息
+     * 编辑用户信息（仅本人或管理员）
      */
     @ApiOperation("编辑用户信息")
     @PostMapping("/edit")
-    public BaseResponse<Boolean> editUser(@RequestBody UserEditRequest userEditRequest) {
+    public BaseResponse<Boolean> editUser(@RequestBody UserEditRequest userEditRequest,
+                                          HttpServletRequest request) {
         if (userEditRequest == null || userEditRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 仅本人或管理员可编辑
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(!loginUser.getId().equals(userEditRequest.getId()) && !userService.isAdmin(loginUser),
+                ErrorCode.NO_AUTH_ERROR);
         User user = new User();
         BeanUtils.copyProperties(userEditRequest, user);
         boolean result = userService.updateById(user);

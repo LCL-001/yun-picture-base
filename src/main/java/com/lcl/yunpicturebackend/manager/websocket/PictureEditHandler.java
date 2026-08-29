@@ -10,7 +10,7 @@ import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditMessageTypeE
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditRequestMessage;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditResponseMessage;
 import com.lcl.yunpicturebackend.service.IUserService;
-import groovyjarjarantlr4.v4.runtime.misc.NotNull;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -172,7 +172,7 @@ public class PictureEditHandler extends TextWebSocketHandler {
      * @throws Exception
      */
     @Override
-    public void afterConnectionClosed(WebSocketSession session, @NotNull CloseStatus status) throws Exception {
+    public void afterConnectionClosed(WebSocketSession session, @NonNull CloseStatus status) throws Exception {
         Map<String, Object> attributes = session.getAttributes();
         Long pictureId = (Long) attributes.get("pictureId");
         User user = (User) attributes.get("user");

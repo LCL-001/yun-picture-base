@@ -99,7 +99,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
                     boolean save = this.save(space);
                     ThrowUtils.throwIf(!save, ErrorCode.OPERATION_ERROR, "创建空间失败，向数据库添加数据失败");
                     // 创建成功后，如果是团队空间，则关联新增团队成员记录
-                    if (SpaceTypeEnum.TEAM.getValue() == space.getSpaceType()) {
+                    if (Objects.equals(space.getSpaceType(), SpaceTypeEnum.TEAM.getValue())) {
                         SpaceUser spaceUser = new SpaceUser();
                         spaceUser.setSpaceId(space.getId());
                         spaceUser.setUserId(userId);
@@ -261,7 +261,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
             return;
         }
         // 团队空间：检查是否为团队管理员
-        if (oldSpace.getSpaceType() != null && oldSpace.getSpaceType() == 1) {
+        if (Objects.equals(oldSpace.getSpaceType(), SpaceTypeEnum.TEAM.getValue())) {
             SpaceUser spaceUser = spaceUserService.getOne(new QueryWrapper<SpaceUser>()
                     .eq("spaceId", oldSpace.getId())
                     .eq("userId", loginUser.getId()));

@@ -7,6 +7,7 @@ import com.lcl.yunpicturebackend.common.ResultUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 @Slf4j
@@ -14,8 +15,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotLoginException.class)
     public BaseResponse<?> notLoginException(NotLoginException e) {
-        log.error("NotLoginException", e);
+        // 未登录属于常见业务场景，降级为 warn 避免日志噪音
+        log.warn("NotLoginException: {}", e.getMessage());
         return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, e.getMessage());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public BaseResponse<?> maxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        log.warn("MaxUploadSizeExceededException: {}", e.getMessage());
+        return ResultUtils.error(ErrorCode.PARAMS_ERROR, "上传文件过大");
     }
 
     @ExceptionHandler(NotPermissionException.class)
