@@ -19,9 +19,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // websocket
+        // websocket（握手依赖 Cookie 会话认证，必须限制来源，防止跨站 WebSocket 劫持）
         registry.addHandler(pictureEditHandler, "/ws/picture/edit")
                 .addInterceptors(wsHandshakeInterceptor)
-                .setAllowedOrigins("*");
+                .setAllowedOriginPatterns("http://localhost:*", "https://www.lincode.online", "https://lincode.online");
     }
 }
