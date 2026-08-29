@@ -25,9 +25,11 @@ import com.lcl.yunpicturebackend.service.IUserService;
 import com.lcl.yunpicturebackend.utils.SqlSortUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +47,9 @@ import static com.lcl.yunpicturebackend.constant.UserConstant.USER_LOGIN_STATE;
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
 
     @Override
@@ -87,15 +92,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 "用户账号错误");
                 ThrowUtils.throwIf(userLoginRequest.getUserPassword().length() < 8, ErrorCode.PARAMS_ERROR,
                 "用户密码错误");
-        // 2. 校验用户是否存在
-        // 2.1. 密码加密
-        String encryptPassword = getEncryptPassword(userLoginRequest.getUserPassword());
         // 2.2. 查询用户是否存在
         User user = lambdaQuery()
                 .eq(User::getUserAccount, userLoginRequest.getUserAccount())
-                .eq(User::getUserPassword, encryptPassword)
                 .one();
         ThrowUtils.throwIf(user == null, ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
+        // 2.3. 校验密码（BCrypt，兼容历史 MD5 并自动升级）
+        ThrowUtils.throwIf(!checkAndUpgradePassword(user, userLoginRequest.getUserPassword()),
+                ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         // 3. 记录用户的登录态（脱敏后会话对象，不存放密码等敏感字段）
         User sessionUser = new User();
         BeanUtil.copyProperties(user, sessionUser);
@@ -140,8 +144,41 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     public String getEncryptPassword(String userPassword) {
+        return passwordEncoder.encode(userPassword);
+    }
+
+    /**
+     * 校验密码：优先 BCrypt；不匹配时回退校验历史 MD5 密码，命中后自动升级为 BCrypt 存储
+     *
+     * @param user        用户（含数据库中的密码哈希）
+     * @param rawPassword 用户输入的明文密码
+     * @return 校验是否通过
+     */
+    private boolean checkAndUpgradePassword(User user, String rawPassword) {
+        String stored = user.getUserPassword();
+        if (StrUtil.isBlank(stored)) {
+            return false;
+        }
+        if (passwordEncoder.matches(rawPassword, stored)) {
+            return true;
+        }
+        // 兼容历史 MD5 + 固定盐的密码
+        if (stored.equals(getLegacyMd5Password(rawPassword))) {
+            lambdaUpdate()
+                    .eq(User::getId, user.getId())
+                    .set(User::getUserPassword, passwordEncoder.encode(rawPassword))
+                    .update();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 历史 MD5 + 固定盐加密算法（仅用于登录时兼容校验，新密码一律使用 BCrypt）
+     */
+    private String getLegacyMd5Password(String rawPassword) {
         final String salt = "asdewqzzxcc";
-        return DigestUtils.md5DigestAsHex((salt + userPassword).getBytes());
+        return DigestUtils.md5DigestAsHex((salt + rawPassword).getBytes());
     }
 
     @Override
