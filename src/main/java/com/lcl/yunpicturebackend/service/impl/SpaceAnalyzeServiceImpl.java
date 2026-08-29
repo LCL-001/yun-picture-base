@@ -21,6 +21,7 @@ import com.lcl.yunpicturebackend.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,15 +51,15 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space> imp
             // 仅管理员可以访问
             boolean isAdmin = userService.isAdmin(loginUser);
             ThrowUtils.throwIf(!isAdmin, ErrorCode.NO_AUTH_ERROR, "无权访问空间");
-            // 统计公共图库的资源使用
+            // 统计公共图库的资源使用（聚合下推到 SQL，避免全量数据加载进内存）
             QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
-            queryWrapper.select("picSize");
+            queryWrapper.select("COUNT(*) AS usedCount", "SUM(picSize) AS usedSize");
             if (!spaceUsageAnalyzeRequest.isQueryAll()) {
                 queryWrapper.isNull("spaceId");
             }
-            List<Object> pictureObjList = pictureService.getBaseMapper().selectObjs(queryWrapper);
-            long usedSize = pictureObjList.stream().mapToLong(result -> result instanceof Long ? (Long) result : 0).sum();
-            long usedCount = pictureObjList.size();
+            Map<String, Object> aggregateResult = pictureService.getBaseMapper().selectMaps(queryWrapper).get(0);
+            long usedCount = aggregateResult.get("usedCount") != null ? ((Number) aggregateResult.get("usedCount")).longValue() : 0;
+            long usedSize = aggregateResult.get("usedSize") != null ? ((Number) aggregateResult.get("usedSize")).longValue() : 0;
             // 封装返回结果
             SpaceUsageAnalyzeResponse spaceUsageAnalyzeResponse = new SpaceUsageAnalyzeResponse();
             spaceUsageAnalyzeResponse.setUsedSize(usedSize);
@@ -139,6 +140,7 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space> imp
         // 根据分析范围补充查询条件
         fillAnalyzeQueryWrapper(spaceTagAnalyzeRequest, queryWrapper);
         // 查询符合条件的所有标签
+        // TODO 标签为 JSON 数组结构，不适合直接 SQL 聚合；数据量大时可同步标签到独立表后聚合，当前保留内存统计
         queryWrapper.select("tags");
         List<String> tagsJsonList = pictureService.getBaseMapper().selectObjs(queryWrapper)
                 .stream()
@@ -175,16 +177,25 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space> imp
         QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
         fillAnalyzeQueryWrapper(spaceSizeAnalyzeRequest, queryWrapper);
 
-        // 查询所有符合条件的图片大小
-        queryWrapper.select("picSize");
-        List<Long> picSizes = pictureService.getBaseMapper().selectObjs(queryWrapper).stream().map(size -> ((Number) size).longValue()).collect(Collectors.toList());
+        // 分段统计下推到 SQL（CASE WHEN 分组），避免全量 picSize 加载进内存
+        queryWrapper.isNotNull("picSize");
+        queryWrapper.select(
+                "CASE WHEN picSize < 100 * 1024 THEN '0' " +
+                        "WHEN picSize < 500 * 1024 THEN '1' " +
+                        "WHEN picSize < 1024 * 1024 THEN '2' " +
+                        "ELSE '3' END AS sizeRange",
+                "COUNT(*) AS count"
+        ).groupBy("sizeRange");
+        Map<String, Long> rangeCountMap = new HashMap<>();
+        pictureService.getBaseMapper().selectMaps(queryWrapper).forEach(result ->
+                rangeCountMap.put(String.valueOf(result.get("sizeRange")), ((Number) result.get("count")).longValue()));
 
         // 定义分段范围，注意使用有序 Map
         Map<String, Long> sizeRanges = new LinkedHashMap<>();
-        sizeRanges.put("<100KB", picSizes.stream().filter(size -> size < 100 * 1024).count());
-        sizeRanges.put("100KB-500KB", picSizes.stream().filter(size -> size >= 100 * 1024 && size < 500 * 1024).count());
-        sizeRanges.put("500KB-1MB", picSizes.stream().filter(size -> size >= 500 * 1024 && size < 1 * 1024 * 1024).count());
-        sizeRanges.put(">1MB", picSizes.stream().filter(size -> size >= 1 * 1024 * 1024).count());
+        sizeRanges.put("<100KB", rangeCountMap.getOrDefault("0", 0L));
+        sizeRanges.put("100KB-500KB", rangeCountMap.getOrDefault("1", 0L));
+        sizeRanges.put("500KB-1MB", rangeCountMap.getOrDefault("2", 0L));
+        sizeRanges.put(">1MB", rangeCountMap.getOrDefault("3", 0L));
 
         // 转换为响应对象
         return sizeRanges.entrySet().stream().map(entry -> new SpaceSizeAnalyzeResponse(entry.getKey(), entry.getValue())).collect(Collectors.toList());
