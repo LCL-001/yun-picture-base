@@ -37,6 +37,7 @@ import com.lcl.yunpicturebackend.manager.upload.PictureUploadTemplate;
 import com.lcl.yunpicturebackend.manager.upload.URLFilePictureUpload;
 import com.lcl.yunpicturebackend.mapper.PictureMapper;
 import com.lcl.yunpicturebackend.service.IPictureService;
+import com.lcl.yunpicturebackend.service.PictureFileCleanupService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lcl.yunpicturebackend.service.ISpaceService;
 import com.lcl.yunpicturebackend.service.IUserService;
@@ -53,7 +54,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -102,6 +102,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 
     private final AliYunAiApi aliYunAiApi;
 
+    private final PictureFileCleanupService pictureFileCleanupService;
+
     private final Cache<String, String> LOCAL_CACHE =
             Caffeine.newBuilder().initialCapacity(1024)
                     .maximumSize(10000L)
@@ -112,7 +114,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     private ExecutorService pictureUploadExecutor;
 
     @Override
-    @Transactional
     public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
         // 判断用户是否拥有权限
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
@@ -700,7 +701,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             return true;
         });
         // 异步清除 cos 中的图片资源
-        this.clearPictureFile(oldPicture);
+        this.cleanupPictureFile(oldPicture);
         // 清除缓存
         clearPictureListCache();
     }
@@ -762,10 +763,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         this.clearPictureListCache();
     }
 
-    @Async
-    @Override
-    public void clearPictureFile(Picture oldPicture) {
-        // 判断该图片是否被多条记录使用
+    /**
+     * 判断该图片 URL 是否被多条记录引用，未被引用时异步清理 COS 中的文件
+     *
+     * @param oldPicture 待清理的图片记录
+     */
+    private void cleanupPictureFile(Picture oldPicture) {
         String pictureUrl = oldPicture.getUrl();
         long count = this.lambdaQuery()
                 .eq(Picture::getUrl, pictureUrl)
@@ -774,17 +777,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         if (count > 1) {
             return;
         }
-        // 从完整 URL 中提取 key（去掉域名前缀）
-        String host = cosClientConfig.getHost();
-        String url = oldPicture.getUrl();
-        if (StrUtil.isNotBlank(url) && url.startsWith(host)) {
-            cosManager.deleteObject(url.substring(host.length()));
-        }
-        // 清理缩略图
-        String thumbnailUrl = oldPicture.getThumbnailUrl();
-        if (StrUtil.isNotBlank(thumbnailUrl) && thumbnailUrl.startsWith(host)) {
-            cosManager.deleteObject(thumbnailUrl.substring(host.length()));
-        }
+        pictureFileCleanupService.clearPictureFile(oldPicture);
     }
 
     @Override
