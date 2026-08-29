@@ -727,8 +727,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         // 操作数据库
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        // 清除 cos 中的图片资源
-        this.clearPictureFile(oldPicture);
+        // 编辑元数据不涉及文件变更，不能清理 COS 中的图片资源
         // 清除缓存
         this.clearPictureListCache();
     }
