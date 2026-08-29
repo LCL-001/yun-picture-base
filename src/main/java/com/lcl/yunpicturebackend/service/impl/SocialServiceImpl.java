@@ -14,10 +14,12 @@ import com.lcl.yunpicturebackend.service.IUserFollowService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,11 +49,26 @@ public class SocialServiceImpl implements ISocialService {
                 new LambdaQueryWrapper<UserFollow>().eq(UserFollow::getFolloweeId, userId));
         if (CollUtil.isEmpty(followers)) return;
         long score = System.currentTimeMillis();
-        for (UserFollow f : followers) {
-            String key = TIMELINE_KEY + f.getFollowerId();
-            stringRedisTemplate.opsForZSet().add(key, String.valueOf(postId), score);
-            Long size = stringRedisTemplate.opsForZSet().size(key);
-            if (size != null && size > TIMELINE_MAX) {
+        // pipeline 批量写入，避免每个粉丝一次 Redis 往返
+        stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            byte[] value = String.valueOf(postId).getBytes(StandardCharsets.UTF_8);
+            for (UserFollow f : followers) {
+                connection.zAdd((TIMELINE_KEY + f.getFollowerId()).getBytes(StandardCharsets.UTF_8), score, value);
+            }
+            return null;
+        });
+        // pipeline 批量获取各时间线长度，仅对超限的裁剪
+        List<Object> sizes = stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (UserFollow f : followers) {
+                connection.zCard((TIMELINE_KEY + f.getFollowerId()).getBytes(StandardCharsets.UTF_8));
+            }
+            return null;
+        });
+        for (int i = 0; i < followers.size(); i++) {
+            Object sizeObj = sizes.get(i);
+            long size = sizeObj instanceof Long ? (Long) sizeObj : 0;
+            if (size > TIMELINE_MAX) {
+                String key = TIMELINE_KEY + followers.get(i).getFollowerId();
                 stringRedisTemplate.opsForZSet().removeRange(key, 0, size - TIMELINE_MAX - 1);
             }
         }
@@ -64,33 +81,39 @@ public class SocialServiceImpl implements ISocialService {
         long end = start + pageSize - 1;
         Set<String> members = stringRedisTemplate.opsForZSet().reverseRange(key, start, end);
 
-        List<PostVO> result = new ArrayList<>();
+        List<Post> posts = new ArrayList<>();
         if (CollUtil.isNotEmpty(members)) {
-            for (String m : members) {
-                Long postId = Long.parseLong(m);
-                Post post = postMapper.selectById(postId);
+            // 批量查询帖子并保持 ZSet 的时间倒序
+            List<Long> postIds = members.stream().map(Long::parseLong).collect(Collectors.toList());
+            Map<Long, Post> postMap = postMapper.selectBatchIds(postIds).stream()
+                    .collect(Collectors.toMap(Post::getId, p -> p));
+            postIds.forEach(postId -> {
+                Post post = postMap.get(postId);
                 if (post != null && post.getStatus() == 0) {
-                    result.add(toPostVO(post, userId));
+                    posts.add(post);
                 }
-            }
+            });
         }
 
         // 数据不足，补 Pull
-        if (result.size() < pageSize) {
+        if (posts.size() < pageSize) {
             List<UserFollow> follows = userFollowService.list(
                     new LambdaQueryWrapper<UserFollow>().eq(UserFollow::getFollowerId, userId));
             if (CollUtil.isNotEmpty(follows)) {
-                Set<Long> existingIds = result.stream().map(PostVO::getId).collect(Collectors.toSet());
+                Set<Long> existingIds = posts.stream().map(Post::getId).collect(Collectors.toSet());
                 List<Long> followeeIds = follows.stream().map(UserFollow::getFolloweeId).collect(Collectors.toList());
                 List<Post> supplement = postMapper.selectList(new LambdaQueryWrapper<Post>()
                         .in(Post::getUserId, followeeIds)
                         .eq(Post::getStatus, 0)
                         .notIn(CollUtil.isNotEmpty(existingIds), Post::getId, existingIds)
                         .orderByDesc(Post::getCreateTime)
-                        .last("LIMIT " + (pageSize - result.size())));
-                supplement.forEach(p -> result.add(toPostVO(p, userId)));
+                        .last("LIMIT " + (pageSize - posts.size())));
+                posts.addAll(supplement);
             }
         }
+
+        // 批量填充用户信息与点赞状态，避免 N+1
+        List<PostVO> result = toPostVOList(posts, userId);
 
         Page<PostVO> page = new Page<>(current, pageSize);
         page.setRecords(result);
@@ -125,22 +148,41 @@ public class SocialServiceImpl implements ISocialService {
         return c != null ? Long.parseLong(c) : 0;
     }
 
-    private PostVO toPostVO(Post post, Long currentUserId) {
-        if (post == null) return null;
-        PostVO vo = PostVO.objToVo(post);
-        if (StrUtil.isNotBlank(post.getTags())) {
-            vo.setTagList(Arrays.asList(post.getTags().split(",")));
+    /**
+     * 批量转换帖子 VO：一次批量查询作者信息 + pipeline 查询点赞状态，避免 N+1
+     */
+    private List<PostVO> toPostVOList(List<Post> posts, Long currentUserId) {
+        if (CollUtil.isEmpty(posts)) {
+            return new ArrayList<>();
         }
-        Long uid = post.getUserId();
-        if (uid != null && uid > 0) {
-            User user = userService.getById(uid);
-            vo.setUser(userService.getUserVO(user));
-        }
+        // 批量查询作者信息
+        Set<Long> userIds = posts.stream().map(Post::getUserId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, User> userMap = CollUtil.isEmpty(userIds) ? Collections.emptyMap()
+                : userService.listByIds(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
+        // pipeline 批量查询当前用户是否点赞
+        Map<Long, Boolean> likedMap = new HashMap<>();
         if (currentUserId != null) {
-            Boolean liked = stringRedisTemplate.opsForSet().isMember(LIKE_USERS_KEY + post.getId(), String.valueOf(currentUserId));
-            vo.setIsLiked(liked != null && liked);
+            List<Object> likedList = stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                byte[] member = String.valueOf(currentUserId).getBytes(StandardCharsets.UTF_8);
+                for (Post post : posts) {
+                    connection.sIsMember((LIKE_USERS_KEY + post.getId()).getBytes(StandardCharsets.UTF_8), member);
+                }
+                return null;
+            });
+            for (int i = 0; i < posts.size(); i++) {
+                likedMap.put(posts.get(i).getId(), Boolean.TRUE.equals(likedList.get(i)));
+            }
         }
-        return vo;
+        return posts.stream().map(post -> {
+            PostVO vo = PostVO.objToVo(post);
+            if (StrUtil.isNotBlank(post.getTags())) {
+                vo.setTagList(Arrays.asList(post.getTags().split(",")));
+            }
+            User user = post.getUserId() != null ? userMap.get(post.getUserId()) : null;
+            vo.setUser(userService.getUserVO(user));
+            vo.setIsLiked(likedMap.getOrDefault(post.getId(), false));
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     @Override

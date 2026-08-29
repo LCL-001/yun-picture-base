@@ -22,11 +22,13 @@ import com.lcl.yunpicturebackend.service.ISocialService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -102,13 +104,62 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         wrapper.orderByDesc(Post::getCreateTime);
         Page<Post> page = this.page(new Page<>(request.getCurrent(), request.getPageSize()), wrapper);
 
-        List<PostVO> voList = page.getRecords().stream()
-                .map(p -> getPostVO(p, httpRequest))
-                .collect(Collectors.toList());
+        // 批量填充作者信息与点赞状态，避免 N+1
+        List<PostVO> voList = toPostVOList(page.getRecords(), httpRequest);
 
         Page<PostVO> voPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         voPage.setRecords(voList);
         return voPage;
+    }
+
+    /**
+     * 获取当前登录用户，未登录时返回 null
+     */
+    private User getLoginUserOrNull(HttpServletRequest httpRequest) {
+        try {
+            return userService.getLoginUser(httpRequest);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 批量转换帖子 VO：一次批量查询作者信息 + pipeline 查询点赞状态
+     */
+    private List<PostVO> toPostVOList(List<Post> posts, HttpServletRequest httpRequest) {
+        if (CollUtil.isEmpty(posts)) {
+            return new ArrayList<>();
+        }
+        // 批量查询作者信息
+        Set<Long> userIds = posts.stream().map(Post::getUserId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, User> userMap = CollUtil.isEmpty(userIds) ? Collections.emptyMap()
+                : userService.listByIds(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
+        // 当前登录用户只判断一次
+        User loginUser = getLoginUserOrNull(httpRequest);
+        // pipeline 批量查询点赞状态
+        Map<Long, Boolean> likedMap = new HashMap<>();
+        if (loginUser != null) {
+            List<Object> likedList = stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                byte[] member = String.valueOf(loginUser.getId()).getBytes(StandardCharsets.UTF_8);
+                for (Post post : posts) {
+                    connection.sIsMember((LIKE_USERS_KEY + post.getId()).getBytes(StandardCharsets.UTF_8), member);
+                }
+                return null;
+            });
+            for (int i = 0; i < posts.size(); i++) {
+                likedMap.put(posts.get(i).getId(), Boolean.TRUE.equals(likedList.get(i)));
+            }
+        }
+        return posts.stream().map(post -> {
+            PostVO vo = PostVO.objToVo(post);
+            if (StrUtil.isNotBlank(post.getTags())) {
+                vo.setTagList(Arrays.asList(post.getTags().split(",")));
+            }
+            User user = post.getUserId() != null ? userMap.get(post.getUserId()) : null;
+            vo.setUser(userService.getUserVO(user));
+            vo.setIsLiked(likedMap.getOrDefault(post.getId(), false));
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     @Override
