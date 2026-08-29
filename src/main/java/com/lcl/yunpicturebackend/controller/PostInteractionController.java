@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 @Api(tags = "帖子互动接口")
-@RestController
+//@RestController
 @RequestMapping("/post")
 @Slf4j
 public class PostInteractionController {

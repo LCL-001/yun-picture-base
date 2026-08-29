@@ -226,7 +226,7 @@ public class PictureController {
      */
     @ApiOperation("分页获取图片列表（封装类），通过缓存")
     @PostMapping("/list/page/vo/cache")
-    @Deprecated
+//    @Deprecated
     public BaseResponse<Page<PictureVO>> listPictureVOByPageByCache(@RequestBody PictureQueryRequest pictureQueryRequest,
                                                                     HttpServletRequest request) {
         Page<PictureVO> pictureVOPage = pictureService.listPictureVOByPageByCache(pictureQueryRequest, request);

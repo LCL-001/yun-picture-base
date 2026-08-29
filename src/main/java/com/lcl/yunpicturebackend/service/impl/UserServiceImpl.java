@@ -2,6 +2,7 @@ package com.lcl.yunpicturebackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -66,7 +67,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         User u = new User();
         u.setUserAccount(userRegisterRequest.getUserAccount());
         u.setUserPassword(encryptPassword);
-        u.setUserName("默认用户名");
+        u.setUserName("默认用户名-" + UUID.randomUUID().toString().substring(0, 8));
+        u.setUserAvatar("https://yuntuku-1423326981.cos.ap-guangzhou.myqcloud.com/public/2045047058943492098/2026-05-14_PELq4JjfWCnr.webp");
         u.setUserRole(UserRoleEnum.USER.getValue());
         boolean success = save(u);
         // 5. 返回结果

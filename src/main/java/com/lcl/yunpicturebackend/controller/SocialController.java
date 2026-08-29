@@ -29,7 +29,7 @@ public class SocialController {
     private IUserService userService;
 
     @ApiOperation("获取关注动态流")
-    @GetMapping("/timeline")
+//    @GetMapping("/timeline")
     public BaseResponse<Page<PostVO>> getTimeline(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int pageSize,

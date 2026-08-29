@@ -14,7 +14,10 @@ public class CorsConfig implements WebMvcConfigurer {
                 // 允许发送 Cookie
                 .allowCredentials(true)
                 // 放行哪些域名（必须用 patterns，否则 * 会和 allowCredentials 冲突）
-                .allowedOriginPatterns("*")
+                .allowedOriginPatterns(
+                        "http://localhost:*",
+                        "https://www.lincode.online",
+                        "https://lincode.online")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("*");

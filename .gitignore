@@ -3,6 +3,7 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+interview-prep-2028-java-intern.md
 
 ### Custom ###
 application-local.yaml

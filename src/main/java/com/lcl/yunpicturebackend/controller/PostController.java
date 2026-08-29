@@ -22,7 +22,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
 @Api(tags = "论坛帖子接口")
-@RestController
+//@RestController
 @RequestMapping("/post")
 @Slf4j
 public class PostController {

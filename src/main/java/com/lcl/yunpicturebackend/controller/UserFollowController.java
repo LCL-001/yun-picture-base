@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @Api(tags = "用户关注接口")
-@RestController
+//@RestController
 @RequestMapping("/user/follow")
 @Slf4j
 public class UserFollowController {
