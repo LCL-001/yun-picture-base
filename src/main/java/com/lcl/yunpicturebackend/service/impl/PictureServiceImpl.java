@@ -2,6 +2,7 @@ package com.lcl.yunpicturebackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
@@ -565,7 +566,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         String cachedValue = LOCAL_CACHE.getIfPresent(key);
         if (StringUtils.isNotBlank(cachedValue)) {
             // 如果命中缓存，返回结果
-            Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, Page.class);
+            Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
             return pictureVOPage;
         }
         // 本地缓存中没有，再从分布式缓存（Redis）中获取
@@ -574,7 +575,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             // 回写本地缓存
             LOCAL_CACHE.put(key, cachedValue);
             // 如果命中缓存，返回结果
-            Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, Page.class);
+            Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
             return pictureVOPage;
         }
         // 缓存都没有，使用分布式锁防止缓存击穿
@@ -589,7 +590,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                     // 回写本地缓存
                     LOCAL_CACHE.put(key, cachedValue);
                     // 如果命中缓存，返回结果
-                    Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, Page.class);
+                    Page<PictureVO> pictureVOPage = JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
                     return pictureVOPage;
                 }
                 // 查询数据库
@@ -626,7 +627,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             cachedValue = stringRedisTemplate.opsForValue().get(key);
             if (StringUtils.isNotBlank(cachedValue)) {
                 LOCAL_CACHE.put(key, cachedValue);
-                return JSONUtil.toBean(cachedValue, Page.class);
+                return JSONUtil.toBean(cachedValue, new TypeReference<Page<PictureVO>>() {}, false);
             }
             // 如果还是没有，返回空结果或再次尝试（限制最大重试次数）
             return new Page<>();
@@ -639,7 +640,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
      * @return
      */
     private PictureQueryRequest buildCacheKey(PictureQueryRequest request) {
-        // 只保留影响查询结果的字段，排除分页参数（current、pageSize）
+        // 保留所有影响查询结果的字段；分页参数决定返回哪一页数据，必须参与 key
         PictureQueryRequest cacheKey = new PictureQueryRequest();
         cacheKey.setReviewStatus(request.getReviewStatus());
         cacheKey.setCategory(request.getCategory());
@@ -651,6 +652,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         cacheKey.setPicFormat(request.getPicFormat());
         cacheKey.setSortField(request.getSortField());
         cacheKey.setSortOrder(request.getSortOrder());
+        cacheKey.setCurrent(request.getCurrent());
+        cacheKey.setPageSize(request.getPageSize());
         return cacheKey;
     }
 
