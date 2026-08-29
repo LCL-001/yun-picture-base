@@ -3,7 +3,6 @@ package com.lcl.yunpicturebackend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lcl.yunpicturebackend.annotation.AuthCheck;
-import com.lcl.yunpicturebackend.api.aliyunai.AliYunAiApi;
 import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
 import com.lcl.yunpicturebackend.api.aliyunai.model.GetOutPaintingTaskResponse;
 import com.lcl.yunpicturebackend.api.imagesearch.ImageSearchApiFacade;
@@ -57,7 +56,6 @@ public class PictureController {
 
     private final IPictureService pictureService;
     private final IUserService userService;
-    private final AliYunAiApi aliYunAiApi;
     private final ISpaceService spaceService;
     private final SpaceUserAuthManager spaceUserAuthManager;
 
@@ -280,17 +278,20 @@ public class PictureController {
      */
     @ApiOperation("以图搜图")
     @PostMapping("/search/picture")
-    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
-        // 1. 参数校验
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest,
+                                                                        HttpServletRequest request) {
+        // 1. 登录校验（接口会调用外部识图 API，防止被匿名刷量）
+        userService.getLoginUser(request);
+        // 2. 参数校验
         ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
         Long pictureId = searchPictureByPictureRequest.getPictureId();
         ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
-        // 2. 从数据库获取原图片信息
+        // 3. 从数据库获取原图片信息
         Picture oldPicture = pictureService.getById(pictureId);
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-        // 3. 调用百度识图API进行搜索
+        // 4. 调用百度识图API进行搜索
         List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getUrl());
-        // 4. 返回相似图片列表
+        // 5. 返回相似图片列表
         return ResultUtils.success(resultList);
     }
 
@@ -338,13 +339,15 @@ public class PictureController {
     }
 
     /**
-     * 获取 AI 扩图任务结果
+     * 获取 AI 扩图任务结果（校验任务归属）
      */
     @ApiOperation("获取 AI 扩图任务结果")
     @GetMapping("/out_painting/get_task")
-    public BaseResponse<GetOutPaintingTaskResponse> getOutPaintingTask(@RequestParam String taskId) {
+    public BaseResponse<GetOutPaintingTaskResponse> getOutPaintingTask(@RequestParam String taskId,
+                                                                       HttpServletRequest request) {
         ThrowUtils.throwIf(taskId == null, ErrorCode.PARAMS_ERROR);
-        GetOutPaintingTaskResponse task = aliYunAiApi.getOutPaintingTask(taskId);
+        User loginUser = userService.getLoginUser(request);
+        GetOutPaintingTaskResponse task = pictureService.getOutPaintingTask(taskId, loginUser);
         return ResultUtils.success(task);
     }
 

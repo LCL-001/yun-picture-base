@@ -16,6 +16,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.lcl.yunpicturebackend.api.aliyunai.AliYunAiApi;
 import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskRequest;
 import com.lcl.yunpicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.lcl.yunpicturebackend.api.aliyunai.model.GetOutPaintingTaskResponse;
 import com.lcl.yunpicturebackend.common.DeleteRequest;
 import com.lcl.yunpicturebackend.domain.dto.file.UploadPictureResult;
 import com.lcl.yunpicturebackend.domain.dto.picture.*;
@@ -83,6 +84,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> implements IPictureService {
+
+    /**
+     * AI 扩图任务归属记录的 Redis key 前缀
+     */
+    private static final String OUT_PAINTING_OWNER_KEY = "yupicture:outpainting:owner:";
 
     private final IUserService userService;
 
@@ -1024,7 +1030,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         Picture picture = Optional.ofNullable(this.getById(pictureId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图片不存在"));
         // 权限校验
-//        this.checkPictureAuth(loginUser, picture);
+        this.checkPictureAuth(loginUser, picture);
         // 构建请求参数
         CreateOutPaintingTaskRequest taskRequest = new CreateOutPaintingTaskRequest();
         CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
@@ -1032,6 +1038,22 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         taskRequest.setInput(input);
         BeanUtil.copyProperties(createPictureOutPaintingTaskRequest, taskRequest);
         // 创建任务
-        return aliYunAiApi.createOutPaintingTask(taskRequest);
+        CreateOutPaintingTaskResponse response = aliYunAiApi.createOutPaintingTask(taskRequest);
+        // 记录任务归属，查询任务结果时校验（TTL 1 天，与任务生命周期相当）
+        if (response.getOutput() != null && StrUtil.isNotBlank(response.getOutput().getTaskId())) {
+            stringRedisTemplate.opsForValue().set(OUT_PAINTING_OWNER_KEY + response.getOutput().getTaskId(),
+                    String.valueOf(loginUser.getId()), 1, TimeUnit.DAYS);
+        }
+        return response;
+    }
+
+    @Override
+    public GetOutPaintingTaskResponse getOutPaintingTask(String taskId, User loginUser) {
+        ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR, "任务 id 不能为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+        String owner = stringRedisTemplate.opsForValue().get(OUT_PAINTING_OWNER_KEY + taskId);
+        ThrowUtils.throwIf(owner == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在或归属记录已过期");
+        ThrowUtils.throwIf(!owner.equals(String.valueOf(loginUser.getId())), ErrorCode.NO_AUTH_ERROR, "无权查看该任务");
+        return aliYunAiApi.getOutPaintingTask(taskId);
     }
 }
