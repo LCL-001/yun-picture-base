@@ -70,11 +70,4 @@ public class GetImagePageUrlApi {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "搜索失败");
         }
     }
-
-    public static void main(String[] args) {
-        // 测试以图搜图功能
-        String imageUrl = "https://www.codefather.cn/logo.png";
-        String result = getImagePageUrl(imageUrl);
-        System.out.println("搜索成功，结果 URL：" + result);
-    }
 }
