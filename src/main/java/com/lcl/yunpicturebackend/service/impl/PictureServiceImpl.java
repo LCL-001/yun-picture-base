@@ -41,6 +41,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lcl.yunpicturebackend.service.ISpaceService;
 import com.lcl.yunpicturebackend.service.IUserService;
 import com.lcl.yunpicturebackend.utils.ColorSimilarUtils;
+import com.lcl.yunpicturebackend.utils.SqlSortUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -846,8 +847,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                 queryWrapper.like("tags", "\"" + tag + "\"");
             }
         }
-        // 排序
-        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        // 排序（白名单校验，防止 ORDER BY 注入）
+        String safeSortField = SqlSortUtils.sanitizeSortField(sortField, "id", "userId", "spaceId", "picSize",
+                "picWidth", "picHeight", "picScale", "name", "category", "reviewStatus", "reviewTime",
+                "createTime", "editTime", "updateTime");
+        queryWrapper.orderBy(StrUtil.isNotEmpty(safeSortField), "ascend".equals(sortOrder), safeSortField);
         return queryWrapper;
     }
 

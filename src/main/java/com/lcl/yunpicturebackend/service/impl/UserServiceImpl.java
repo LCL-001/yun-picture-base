@@ -22,6 +22,7 @@ import com.lcl.yunpicturebackend.exception.ThrowUtils;
 import com.lcl.yunpicturebackend.manager.auth.StpKit;
 import com.lcl.yunpicturebackend.mapper.UserMapper;
 import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yunpicturebackend.utils.SqlSortUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -152,7 +153,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
         queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
         queryWrapper.like(StrUtil.isNotBlank(userProfile), "userProfile", userProfile);
-        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        // 排序（白名单校验，防止 ORDER BY 注入）
+        String safeSortField = SqlSortUtils.sanitizeSortField(sortField, "id", "userAccount", "userName",
+                "userProfile", "userRole", "createTime", "editTime", "updateTime");
+        queryWrapper.orderBy(StrUtil.isNotEmpty(safeSortField), "ascend".equals(sortOrder), safeSortField);
         return queryWrapper;
     }
 

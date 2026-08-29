@@ -27,6 +27,7 @@ import com.lcl.yunpicturebackend.service.ISpaceService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lcl.yunpicturebackend.service.ISpaceUserService;
 import com.lcl.yunpicturebackend.service.IUserService;
+import com.lcl.yunpicturebackend.utils.SqlSortUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -140,8 +141,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         queryWrapper.like(StrUtil.isNotBlank(spaceName), "spaceName", spaceName);
         queryWrapper.eq(ObjUtil.isNotEmpty(spaceLevel), "spaceLevel", spaceLevel);
         queryWrapper.eq(ObjUtil.isNotEmpty(spaceType), "spaceType", spaceType);
-        // 排序
-        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        // 排序（白名单校验，防止 ORDER BY 注入）
+        String safeSortField = SqlSortUtils.sanitizeSortField(sortField, "id", "spaceName", "spaceLevel",
+                "spaceType", "maxSize", "maxCount", "totalSize", "totalCount", "userId",
+                "createTime", "editTime", "updateTime");
+        queryWrapper.orderBy(StrUtil.isNotEmpty(safeSortField), "ascend".equals(sortOrder), safeSortField);
         return queryWrapper;
     }
 
