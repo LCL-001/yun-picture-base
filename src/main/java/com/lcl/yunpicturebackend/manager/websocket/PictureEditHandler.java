@@ -3,8 +3,6 @@ package com.lcl.yunpicturebackend.manager.websocket;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.lcl.yunpicturebackend.domain.po.User;
 import com.lcl.yunpicturebackend.manager.websocket.disruptor.PictureEditEventProducer;
 import com.lcl.yunpicturebackend.manager.websocket.model.PictureEditActionEnum;
@@ -40,6 +38,9 @@ public class PictureEditHandler extends TextWebSocketHandler {
 
     @Resource
     private PictureEditEventProducer pictureEditEventProducer;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 接收客户端消息
@@ -229,14 +230,7 @@ public class PictureEditHandler extends TextWebSocketHandler {
     private void broadcastToPicture(Long pictureId, PictureEditResponseMessage pictureEditResponseMessage, WebSocketSession excludeSession) throws Exception {
         Set<WebSocketSession> sessionSet = pictureSessions.get(pictureId);
         if (CollUtil.isNotEmpty(sessionSet)) {
-            // 创建 ObjectMapper
-            ObjectMapper objectMapper = new ObjectMapper();
-            // 配置序列化：将 Long 类型转为 String，解决丢失精度问题
-            SimpleModule module = new SimpleModule();
-            module.addSerializer(Long.class, ToStringSerializer.instance);
-            module.addSerializer(Long.TYPE, ToStringSerializer.instance); // 支持 long 基本类型
-            objectMapper.registerModule(module);
-            // 序列化为 JSON 字符串
+            // 复用全局 ObjectMapper（JsonConfig 已配置 Long → String 序列化，解决精度丢失）
             String message = objectMapper.writeValueAsString(pictureEditResponseMessage);
             TextMessage textMessage = new TextMessage(message);
             for (WebSocketSession session : sessionSet) {
