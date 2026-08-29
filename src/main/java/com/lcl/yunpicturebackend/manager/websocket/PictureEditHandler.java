@@ -16,6 +16,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
 import javax.annotation.Resource;
 import java.util.Map;
@@ -27,6 +28,13 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class PictureEditHandler extends TextWebSocketHandler {
+
+    /**
+     * WebSocket 并发发送保护参数：2 秒发送超时 / 512KB 发送缓冲上限
+     */
+    private static final int SEND_TIME_LIMIT_MS = 2000;
+    private static final int SEND_BUFFER_SIZE_LIMIT = 512 * 1024;
+
     // 每张图片的编辑状态，key: pictureId, value: 当前正在编辑的用户 ID
     private final Map<Long, Long> pictureEditingUsers = new ConcurrentHashMap<>();
 
@@ -99,11 +107,12 @@ public class PictureEditHandler extends TextWebSocketHandler {
      */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        // 保存会话到集合中
+        // 保存会话到集合中（使用并发安全装饰器包装：Disruptor 消费线程与其它广播线程并发发送时串行化，
+        // 避免 WebSocket 底层 TEXT_PARTIAL_WRITING 异常）
         User user = (User) session.getAttributes().get("user");
         Long pictureId = (Long) session.getAttributes().get("pictureId");
         pictureSessions.putIfAbsent(pictureId, ConcurrentHashMap.newKeySet());
-        pictureSessions.get(pictureId).add(session);
+        pictureSessions.get(pictureId).add(new ConcurrentWebSocketSessionDecorator(session, SEND_TIME_LIMIT_MS, SEND_BUFFER_SIZE_LIMIT));
 
         // 构造响应
         PictureEditResponseMessage pictureEditResponseMessage = new PictureEditResponseMessage();
@@ -202,10 +211,10 @@ public class PictureEditHandler extends TextWebSocketHandler {
         // 移除当前用户的编辑状态
         handleExitEditMessage(null, session, user, pictureId);
 
-        // 删除会话
+        // 删除会话（集合中保存的是装饰器，按 sessionId 匹配移除）
         Set<WebSocketSession> sessionSet = pictureSessions.get(pictureId);
         if (sessionSet != null) {
-            sessionSet.remove(session);
+            sessionSet.removeIf(stored -> stored.getId().equals(session.getId()));
             if (sessionSet.isEmpty()) {
                 pictureSessions.remove(pictureId);
             }
@@ -234,8 +243,8 @@ public class PictureEditHandler extends TextWebSocketHandler {
             String message = objectMapper.writeValueAsString(pictureEditResponseMessage);
             TextMessage textMessage = new TextMessage(message);
             for (WebSocketSession session : sessionSet) {
-                // 排除掉的 session 不发送
-                if (excludeSession != null && excludeSession.equals(session)) {
+                // 排除掉的 session 不发送（集合中保存的是装饰器，按 sessionId 匹配）
+                if (excludeSession != null && excludeSession.getId().equals(session.getId())) {
                     continue;
                 }
                 if (session.isOpen()) {
